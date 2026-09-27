@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A1220">
+<title>RNX Panel remoto</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="{{ url_for('static', filename='estilo.css') }}">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 20h18"/><path d="M6 16v-5M11 16V6M16 16v-8M21 16v-3"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="m8 8-5 4 5 4M16 8l5 4-5 4M14 4l-4 16"/></symbol>
+  <symbol id="i-term" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+  <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="i-restart" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v5h-5"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4 6.8 6.8 0 0 0 20 14.5z"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M14 4h5v16h-5"/><path d="m10 8-4 4 4 4M6 12h10"/></symbol>
+  <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/><rect x="9.5" y="9.5" width="5" height="5"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/></symbol>
+  <symbol id="i-ram" viewBox="0 0 24 24"><rect x="2.5" y="7" width="19" height="10" rx="1.5"/><path d="M6.5 10.5v3M10.5 10.5v3M14.5 10.5v3M18 10.5v3M6 17v2M12 17v2M18 17v2"/></symbol>
+  <symbol id="i-disk" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 14h18"/><circle cx="17" cy="16.5" r=".6"/></symbol>
+  <symbol id="i-temp" viewBox="0 0 24 24"><path d="M14 14.8V5a2 2 0 1 0-4 0v9.8a4 4 0 1 0 4 0z"/><path d="M12 9v7"/></symbol>
+  <symbol id="i-gpu" viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="11" rx="1.5"/><circle cx="9" cy="11.5" r="3"/><path d="M15 9.5h4M15 13.5h4M5 17v2"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></symbol>
+  <symbol id="i-pi" viewBox="0 0 24 24"><path d="M12 8.5c-1.5-3-4.5-4-6.5-3.2C6.3 7.7 9 8.6 12 8.5zm0 0c1.5-3 4.5-4 6.5-3.2-.8 2.4-3.5 3.3-6.5 3.2z"/><circle cx="12" cy="11.5" r="2.4"/><circle cx="8.3" cy="14.5" r="2.4"/><circle cx="15.7" cy="14.5" r="2.4"/><circle cx="12" cy="18" r="2.4"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.6 5.7 3.6 9s-1.1 6.3-3.6 9c-2.5-2.7-3.6-5.7-3.6-9S9.5 5.7 12 3z"/></symbol>
+  <symbol id="i-card" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M6 15h4"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M21 3 3 10.5l7 2.5 2.5 7z"/><path d="m10 13 4-4"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 16v4M17 18h4"/></symbol>
+  <symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8.5 6h7M7.2 8.2l3.6 7.6M16.8 8.2l-3.6 7.6"/></symbol>
+  <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M19 7V5.5A1.5 1.5 0 0 0 17.5 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2H5"/><circle cx="16.5" cy="13.5" r="1"/></symbol>
+  <symbol id="i-mouse" viewBox="0 0 24 24"><rect x="6.5" y="3" width="11" height="18" rx="5.5"/><path d="M12 7v3"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4M8 8h8M8 11.5h5"/></symbol>
+  <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M3 12h4l3-7 4 14 3-7h4"/></symbol>
+</svg>
+
+<header class="top">
+  <a class="marca" href="#inicio">
+    {% include "_logo.html" %}
+    <div><b>RNX PANEL</b><span>Remote control</span></div>
+  </a>
+  <nav class="secciones" aria-label="Secciones">
+    <a href="#control">Control</a><i></i><a href="#rendimiento">Monitor</a><i></i><a href="#scripts">Execute</a>
+  </nav>
+  <div class="chips">
+    <div class="chip"><svg class="i"><use href="#i-pi"/></svg><div><b>Raspberry Pi Zero</b><span><i class="dot" id="pi-dot"></i>192.168.100.75</span></div></div>
+    <div class="chip"><svg class="i"><use href="#i-monitor"/></svg><div><b>PC objetivo</b><span><i class="dot" id="pc-dot"></i><span id="pc-nombre">RNXPC</span></span></div></div>
+    <form method="post" action="{{ url_for('salir') }}"><button class="salir" title="Cerrar sesión" aria-label="Cerrar sesión"><svg class="i"><use href="#i-logout"/></svg></button></form>
+  </div>
+</header>
+
+<div class="app">
+  <nav class="lateral" aria-label="Navegación">
+    <a href="#inicio" class="on"><svg class="i"><use href="#i-home"/></svg><span>Inicio</span></a>
+    <a href="#control"><svg class="i"><use href="#i-power"/></svg><span>Control</span></a>
+    <a href="#scripts"><svg class="i"><use href="#i-code"/></svg><span>Scripts</span></a>
+    <a href="#terminal"><svg class="i"><use href="#i-term"/></svg><span>Terminal</span></a>
+    <a href="#rendimiento"><svg class="i"><use href="#i-chart"/></svg><span>Rendimiento</span></a>
+    <div class="pie">
+      <b>PC control from anywhere</b>
+      <span><i class="dot" id="sis-dot"></i><span id="sis-txt">Comprobando…</span></span>
+      <span class="nota" id="act"></span>
+    </div>
+  </nav>
+
+  <main>
+    <div class="fila" id="inicio">
+      <section class="card" aria-labelledby="h-estado">
+        <div class="card-cab"><svg class="i"><use href="#i-pulse"/></svg><h2 id="h-estado">Estado del sistema</h2><span class="der" id="pc-estado"></span></div>
+        <div class="card-body">
+          <div class="medida"><svg class="i"><use href="#i-cpu"/></svg><span class="n">CPU</span><div class="barra"><i id="b-cpu"></i></div><span class="v" id="v-cpu">—</span></div>
+          <div class="medida"><svg class="i"><use href="#i-ram"/></svg><span class="n">RAM</span><div class="barra"><i id="b-ram"></i></div><span class="v" id="v-ram">—</span></div>
+          <div class="medida"><svg class="i"><use href="#i-disk"/></svg><span class="n">Disco (C:)</span><div class="barra"><i id="b-disco"></i></div><span class="v" id="v-disco">—</span></div>
+          <div class="medida"><svg class="i"><use href="#i-gpu"/></svg><span class="n">GPU</span><div class="barra"><i id="b-gpu"></i></div><span class="v" id="v-gpu">—</span></div>
+          <div class="medida sin-barra"><svg class="i"><use href="#i-temp"/></svg><span class="n">Temperatura GPU</span><span class="v" id="v-gt">—</span></div>
+          <div class="medida sin-barra"><svg class="i"><use href="#i-clock"/></svg><span class="n">Uptime</span><span class="v" id="v-up">—</span></div>
+          <p class="nota" id="lectura"></p>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="h-info">
+        <div class="card-cab"><svg class="i"><use href="#i-info"/></svg><h2 id="h-info">Información del PC</h2></div>
+        <div class="card-body">
+          <dl class="kv">
+            <dt>Nombre del equipo</dt><dd id="i-equipo">—</dd>
+            <dt>Sistema operativo</dt><dd id="i-so">—</dd>
+            <dt>Arquitectura</dt><dd id="i-arq">—</dd>
+            <dt>Procesador</dt><dd id="i-cpu-n">—</dd>
+            <dt>Gráfica</dt><dd id="i-gpu-n">—</dd>
+            <dt>IP local</dt><dd id="i-ip">192.168.100.10</dd>
+            <dt>IP pública</dt><dd id="i-ippub">—</dd>
+            <dt>Sesión</dt><dd id="i-ses">—</dd>
+          </dl>
+        </div>
+      </section>
+
+      <section class="card ancha" aria-labelledby="h-serv">
+        <div class="card-cab"><svg class="i"><use href="#i-globe"/></svg><h2 id="h-serv">Servicios</h2></div>
+        <div class="card-body">
+          <div id="servicios"></div>
+          <div class="toggle">
+            <div class="t">Raspberry Pi<span id="pi-up">—</span></div>
+            <button class="btn fantasma" id="b-pi" style="margin-left:auto">Reiniciar Pi</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="fila">
+      <section class="card" id="control" aria-labelledby="h-ctl">
+        <div class="card-cab"><svg class="i"><use href="#i-power"/></svg><h2 id="h-ctl">Controles rápidos</h2></div>
+        <div class="card-body">
+          <div class="controles">
+            <button class="ctl" id="c-encender"><svg class="i c-ok"><use href="#i-zap"/></svg><span>Encender</span></button>
+            <button class="ctl" id="c-apagar"><svg class="i c-err"><use href="#i-power"/></svg><span>Apagar</span></button>
+            <button class="ctl" id="c-reiniciar"><svg class="i c-blue"><use href="#i-restart"/></svg><span>Reiniciar</span></button>
+            <button class="ctl" id="c-suspender"><svg class="i c-warn"><use href="#i-moon"/></svg><span>Suspender</span></button>
+            <button class="ctl" id="c-bloquear"><svg class="i c-violet"><use href="#i-lock"/></svg><span>Bloquear</span></button>
+            <button class="ctl" id="c-cerrar"><svg class="i c-acc"><use href="#i-logout"/></svg><span>Cerrar sesión</span></button>
+          </div>
+          <div class="toggle">
+            <svg class="i" style="color:var(--dim)"><use href="#i-mouse"/></svg>
+            <div class="t">Anti-bloqueo<span id="jig-sub">Mueve el ratón cada 5 min</span></div>
+            <button class="sw" id="jig" role="switch" aria-checked="false" aria-label="Anti-bloqueo: mover el ratón cada 5 minutos"></button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="scripts" aria-labelledby="h-scr">
+        <div class="card-cab"><svg class="i"><use href="#i-code"/></svg><h2 id="h-scr">Scripts</h2></div>
+        <div class="card-body" style="gap:0">
+          <div class="script">
+            <span class="ico c-acc"><svg class="i"><use href="#i-spark"/></svg></span>
+            <span><span class="n">Limpieza RNX</span><span class="d" id="d-limpiar">Cachés, backup de Steam, NVIDIA · /todo</span></span>
+            <span class="acc"><button class="btn" id="s-limpiar">Ejecutar</button></span>
+          </div>
+          <div class="script">
+            <span class="ico c-blue"><svg class="i"><use href="#i-route"/></svg></span>
+            <span><span class="n">Open NAT 3074</span><span class="d" id="d-nat">Firewall + router UPnP · TCP/UDP</span></span>
+            <span class="acc"><button class="btn" id="s-nat">Ejecutar</button></span>
+          </div>
+          <div class="script">
+            <span class="ico c-warn"><svg class="i"><use href="#i-wallet"/></svg></span>
+            <span><span class="n">Recarga monedero <span class="saldo" id="saldo"></span></span><span class="d" id="d-mon">Casa Ortega · {{ importe }} € · máx. 1 al día</span></span>
+            <span class="acc"><button class="btn fantasma" id="s-simular" title="Todo el recorrido sin pagar">Simular</button><button class="btn" id="s-recargar">Recargar</button></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card ancha" id="terminal" aria-labelledby="h-term">
+        <div class="card-cab"><svg class="i"><use href="#i-term"/></svg><h2 id="h-term">Terminal</h2>
+          <span class="der"><button class="btn fantasma" id="t-cerrar" hidden>Ver registro</button></span></div>
+        <div class="terminal" id="term" role="log" aria-live="polite"></div>
+      </section>
+    </div>
+
+    <section class="card" id="rendimiento" aria-labelledby="h-rend">
+      <div class="card-cab"><svg class="i"><use href="#i-chart"/></svg><h2 id="h-rend">Rendimiento</h2>
+        <span class="der"><span class="rangos" role="group" aria-label="Rango de tiempo" id="rangos">
+          <button data-r="1h">1H</button><button data-r="6h">6H</button><button data-r="24h">24H</button><button data-r="7d">7D</button><button data-r="30d">30D</button>
+        </span></span></div>
+      <div class="card-body">
+        <div class="graficas" id="graficas"></div>
+        <p class="nota" id="tel-nota"></p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<dialog id="dlg">
+  <h3 id="dlg-t"></h3>
+  <p id="dlg-p"></p>
+  <div class="acc">
+    <button class="btn" id="dlg-no">Cancelar</button>
+    <button class="btn peligro" id="dlg-si"></button>
+  </div>
+</dialog>
+<div class="toast" id="toast" role="status" hidden></div>
+<div class="velo" id="velo" hidden><div><h3>Reiniciando la Raspberry Pi</h3><p>El panel vuelve solo en 1-2 minutos.</p></div></div>
+
+<script>
+const CSRF = {{ csrf|tojson }};
+const IMPORTE = {{ importe|tojson }};
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let E = null, S = null, vista = null, timer = null, timerS = null, primera = true, reiniciando = false;
+let rango = '24h';
+try { rango = localStorage.getItem('rango') || '24h'; } catch (_) {}
+
+// --- formato ----------------------------------------------------------------------
+const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const pad = n => String(n).padStart(2, '0');
+const hhmm = t => { const d = new Date(t * 1000); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const ddmm = t => { const d = new Date(t * 1000); return `${d.getDate()} ${MESES[d.getMonth()]}`; };
+function cuando(t){
+  const d = new Date(t * 1000), hoy = new Date(), ayer = new Date(); ayer.setDate(hoy.getDate() - 1);
+  if (d.toDateString() === hoy.toDateString()) return hhmm(t);
+  if (d.toDateString() === ayer.toDateString()) return 'ayer ' + hhmm(t);
+  return `${ddmm(t)} ${hhmm(t)}`;
+}
+function hace(t){
+  if (!t) return '';
+  const s = Math.max(0, E.ahora - t);
+  return s < 60 ? 'ahora' : s < 3600 ? `hace ${Math.floor(s / 60)} min` : s < 86400 ? `hace ${Math.floor(s / 3600)} h` : `hace ${Math.floor(s / 86400)} d`;
+}
+function dura(s){
+  if (s == null) return '—';
+  const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
+  return d ? `${d}d ${h}h ${m}m` : `${h}h ${m}m`;
+}
+function fechaRec(s){
+  if (!s) return 'sin datos';
+  const [d, h] = s.split(' '), [, m, dd] = d.split('-');
+  return (d === E.hoy ? 'hoy' : `${+dd} ${MESES[+m - 1]}`) + ' ' + h;
+}
+const ocupado = () => !!(E && E.trabajo && E.trabajo.activo);
+
+// --- estado del sistema e informacion --------------------------------------------------
+const PC_TXT = {encendido:['ok','En línea'], apagado:['','Apagado'], encendiendo:['warn','Arrancando'],
+  apagando:['warn','Apagando'], reiniciando:['warn','Reiniciando'], suspendiendo:['warn','Suspendiendo'], desconocido:['','Comprobando']};
+function barra(id, pct){
+  const b = $('b-' + id);
+  b.style.width = pct == null ? '0' : Math.min(100, pct) + '%';
+  b.className = pct >= 90 ? 'err' : pct >= 75 ? 'warn' : '';
+}
+function pintarPC(){
+  const pc = E.servicios.pc, i = pc.info, on = pc.estado === 'encendido' && i;
+  const [c, t] = PC_TXT[pc.estado] || PC_TXT.desconocido;
+  $('pc-dot').className = 'dot ' + c;
+  $('pc-estado').innerHTML = `<i class="dot ${c}"></i><span class="nota">${t}</span>`;
+  barra('cpu', on ? i.cpu : null);           $('v-cpu').textContent = on ? i.cpu + '%' : '—';
+  barra('ram', on ? i.ram_pct : null);       $('v-ram').textContent = on ? i.ram_pct + '%' : '—';
+  barra('disco', on ? i.disco_pct : null);   $('v-disco').textContent = on && i.disco_pct != null ? i.disco_pct + '%' : '—';
+  barra('gpu', on ? i.gpu_uso : null);       $('v-gpu').textContent = on && i.gpu_uso != null ? i.gpu_uso + '%' : '—';
+  $('v-gt').textContent = on && i.gpu_temp != null ? i.gpu_temp + ' °C' : '—';
+  $('v-up').textContent = on ? dura(i.uptime_s) : pc.estado === 'apagado' && pc.desde ? 'apagado desde ' + cuando(pc.desde) : '—';
+  $('lectura').textContent = on
+    ? `Última lectura ${hhmm(i.t)} · ${i.ram_usada}/${i.ram_total} GB RAM · ${i.disco_libre} GB libres en C: · se actualiza cada ${Math.round(E.cada_pc / 60)} min`
+    : 'Sin lecturas: el PC no está en línea.';
+  if (i){
+    $('pc-nombre').textContent = i.equipo || 'RNXPC';
+    $('i-equipo').textContent = i.equipo || '—';
+    $('i-so').textContent = i.so || '—';
+    $('i-arq').textContent = i.arq || '—';
+    $('i-cpu-n').textContent = (i.cpu_nombre || '—').replace(/\(R\)|\(TM\)/g, '').replace(/\s+/g, ' ');
+    $('i-gpu-n').textContent = i.gpu_nombre || '—';
+    $('i-ip').textContent = i.ip || '192.168.100.10';
+  }
+  $('i-ses').textContent = on ? (i.sesion ? 'Iniciada' : 'Pantalla de inicio de sesión') : '—';
+  $('i-ippub').textContent = E.servicios.red.ip_publica || '—';
+
+  // controles
+  const libre = !ocupado(), enLinea = pc.estado === 'encendido';
+  $('c-encender').disabled = !libre || pc.estado !== 'apagado';
+  ['apagar', 'reiniciar', 'suspender'].forEach(k => $('c-' + k).disabled = !libre || !enLinea);
+  ['bloquear', 'cerrar'].forEach(k => $('c-' + k).disabled = !libre || !enLinea || !(i && i.sesion));
+  const jig = $('jig');
+  if (jig.dataset.ocupado !== '1'){
+    jig.setAttribute('aria-checked', String(!!(on && i.jiggler)));
+    jig.disabled = !on || !i.sesion;
+  }
+  $('jig-sub').textContent = !enLinea ? 'PC fuera de línea' : i && !i.sesion ? 'Requiere sesión iniciada'
+    : i && i.jiggler ? 'Activo · Windows no se bloquea' : 'Mueve el ratón cada 5 min';
+}
+
+// --- servicios ---------------------------------------------------------------------------
+function servicio(icono, nombre, s, extra){
+  let c = '', t = 'Comprobando', d = '';
+  if (s.ok != null){
+    c = s.ok ? 'ok' : 'err'; t = s.ok ? 'Operativo' : 'Caído';
+    d = (extra ? extra + ' · ' : '') + (s.ok ? `${s.ms} ms` : esc(s.error)) + ' · ' + hace(s.comprobado);
+  }
+  return `<div class="serv"><svg class="i"><use href="#i-${icono}"/></svg><span class="n">${nombre}</span>
+    <span class="e"><i class="dot ${c}"></i>${t}</span><span class="d">${d}</span></div>`;
+}
+function pintarServicios(){
+  const s = E.servicios, pi = s.pi || {};
+  $('servicios').innerHTML =
+    servicio('card', 'Casa Ortega', s.casaortega) +
+    servicio('globe', 'Pasarela Redsys', s.redsys) +
+    servicio('send', 'API Telegram', s.telegram, s.telegram.ok && s.telegram.bot ? esc(s.telegram.bot) : '');
+  const piOk = !!pi.ram_total, caliente = pi.temp >= 75;
+  $('pi-dot').className = 'dot ' + (!piOk ? '' : caliente ? 'err' : 'ok');
+  $('pi-up').textContent = piOk ? `CPU ${pi.cpu ?? '—'}% · RAM ${pi.ram_usada}/${pi.ram_total} MB · ${pi.temp} °C · activa ${dura(pi.uptime_s)}` : '—';
+  $('b-pi').disabled = ocupado();
+  const caidos = ['casaortega', 'redsys', 'telegram'].filter(k => s[k].ok === false).length;
+  $('sis-dot').className = 'dot ' + (caidos ? 'err' : 'ok');
+  $('sis-txt').textContent = caidos ? `${caidos} servicio${caidos > 1 ? 's' : ''} caído${caidos > 1 ? 's' : ''}` : 'Sistema en línea';
+}
+
+// --- scripts -----------------------------------------------------------------------------
+function ultimo(re, base){
+  const e = E.eventos.find(x => re.test(x.texto));
+  return e ? `${base} · última ${cuando(e.t)}${e.nivel === 'err' ? ' (con errores)' : ''}` : base;
+}
+function pintarScripts(){
+  const on = E.servicios.pc.estado === 'encendido', libre = !ocupado();
+  const m = E.monedero, hecha = m.ultima && m.ultima.startsWith(E.hoy);
+  $('s-limpiar').disabled = !libre || !on;
+  $('s-nat').disabled = !libre || !on;
+  $('s-recargar').disabled = !libre || hecha;
+  $('s-simular').disabled = !libre;
+  $('s-recargar').textContent = hecha ? 'Hecha hoy' : 'Recargar';
+  $('saldo').textContent = m.saldo ? m.saldo + ' €' : '';
+  $('d-limpiar').textContent = ultimo(/Limpieza RNX/, 'Cachés, backup de Steam, NVIDIA · /todo');
+  $('d-nat').textContent = ultimo(/Open NAT/, 'Firewall + router UPnP · TCP/UDP');
+  $('d-mon').textContent = `Casa Ortega · ${IMPORTE} € · última recarga ${fechaRec(m.ultima)}`;
+}
+
+// --- terminal: operacion en curso o registro -------------------------------------------------
+function pintarTerminal(){
+  const t = E.trabajo;
+  if (primera && t && t.activo) vista = t.id;
+  const ver = t && t.id === vista, T = $('term');
+  const abajo = T.scrollTop + T.clientHeight >= T.scrollHeight - 10;
+  let h = '';
+  if (ver){
+    const E_ = {done:['ok','[ OK ]'], fail:['err','[FAIL]'], run:['run','[ .. ]'], skip:['dim','[SKIP]'], '':['k','[    ]']};
+    h += `<span class="p">RNX:\\PC&gt;</span> ${esc(t.tipo)}\n<span class="k">${esc(t.titulo)} · ${cuando(t.inicio)}</span>\n\n`;
+    t.pasos.forEach(p => {
+      const [c, tag] = E_[p.s] || E_[''];
+      h += `<span class="${c}">${tag}</span> ${esc(p.t)}${p.d ? ` <span class="dim">— ${esc(p.d)}</span>` : ''}${p.time ? ` <span class="k">(${esc(p.time)})</span>` : ''}\n`;
+    });
+    if (t.log.length) h += '\n' + t.log.map(l => `<span class="dim">${esc(l)}</span>`).join('\n') + '\n';
+    if (t.resultado){
+      const r = t.resultado;
+      h += `\n<span class="${r.tipo === 'ok' ? 'ok' : 'err'}">${r.tipo === 'ok' ? '✔' : '✖'} ${esc(r.titulo)}</span>${r.detalle ? `\n  <span class="dim">${esc(r.detalle)}</span>` : ''}\n`;
+    }
+    h += t.activo ? '\n<span class="cursor"></span>' : `\n<span class="p">RNX:\\PC&gt;</span> <span class="cursor"></span>`;
+  } else {
+    const N = {ok:['ok','OK  '], err:['err','FAIL'], info:['dim','INFO']};
+    h += `<span class="p">RNX:\\PC&gt;</span> registro\n\n`;
+    h += E.eventos.length ? E.eventos.slice().reverse().map(e => {
+      const [c, tag] = N[e.nivel];
+      return `<span class="k">${cuando(e.t).padStart(11)}</span>  <span class="${c}">${tag}</span>  ${esc(e.texto)}`;
+    }).join('\n') : '<span class="dim">Sin operaciones registradas.</span>';
+    h += `\n\n<span class="p">RNX:\\PC&gt;</span> <span class="cursor"></span>`;
+  }
+  T.innerHTML = h;
+  if (abajo || primera) T.scrollTop = T.scrollHeight;
+  $('t-cerrar').hidden = !(ver && !t.activo);
+}
+$('t-cerrar').onclick = () => { vista = null; pintarTerminal(); };
+
+// --- rendimiento -------------------------------------------------------------------------------
+const GRAFS = [
+  {o:'pc', k:1, t:'PC · CPU', u:'%', min:0, max:100},
+  {o:'pc', k:2, t:'PC · RAM', u:'%', min:0, max:100},
+  {o:'pc', k:3, t:'PC · temperatura GPU', u:'°C', min:20, max:100},
+  {o:'pi', k:1, t:'Pi · CPU', u:'%', min:0, max:100},
+  {o:'pi', k:2, t:'Pi · RAM', u:'%', min:0, max:100},
+  {o:'pi', k:3, t:'Pi · temperatura', u:'°C', min:20, max:100},
+];
+function pintarGraficas(){
+  if (!S) return;
+  const W = 300, H = 84, ini = S.desde, fin = S.hasta, larga = fin - ini > 86400;
+  const X = t => (t - ini) / (fin - ini) * W;
+  const et = t => larga ? ddmm(t) : hhmm(t);
+  $('graficas').innerHTML = GRAFS.map((g, n) => `<div class="graf" id="gr${n}"></div>`).join('');
+  GRAFS.forEach((g, n) => {
+    const el = $('gr' + n);
+    const datos = S[g.o].filter(p => p[g.k] != null).map(p => ({t: p[0], v: p[g.k]}));
+    const ult = datos.length ? datos[datos.length - 1].v : null;
+    let h = `<div class="gc"><span class="gt">${g.t}</span><span class="gv">${ult != null ? Math.round(ult) : '—'}<small> ${g.u}</small></span></div>`;
+    if (datos.length < 2){ el.innerHTML = h + `<div class="sin">${datos.length ? 'Recopilando datos…' : 'Sin datos en este rango'}</div>`; return; }
+    const Y = v => H - 2 - (Math.min(Math.max(v, g.min), g.max) - g.min) / (g.max - g.min) * (H - 4);
+    // Los huecos (PC apagado, Pi reiniciada) cortan la linea.
+    const hueco = 2.5 * Math.max(S.tramo, S.cada[g.o]);
+    const tramos = [[]];
+    datos.forEach((p, k) => { if (k && p.t - datos[k - 1].t > hueco) tramos.push([]); tramos[tramos.length - 1].push(p); });
+    let trazo = '';
+    tramos.forEach(tr => {
+      const pts = tr.map(p => `${X(p.t).toFixed(1)},${Y(p.v).toFixed(1)}`).join(' ');
+      if (tr.length > 1){
+        trazo += `<polygon points="${X(tr[0].t).toFixed(1)},${H} ${pts} ${X(tr[tr.length - 1].t).toFixed(1)},${H}" fill="var(--accent)" opacity=".12"/>`;
+        trazo += `<polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`;
+      } else {
+        trazo += `<line x1="${X(tr[0].t)}" x2="${X(tr[0].t)}" y1="${Y(tr[0].v) - 2}" y2="${Y(tr[0].v) + 2}" stroke="var(--accent)" stroke-width="4" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`;
+      }
+    });
+    const rej = [.25, .5, .75].map(f => `<line x1="0" x2="${W}" y1="${H * f}" y2="${H * f}" stroke="var(--line-2)" stroke-dasharray="2 4" vector-effect="non-scaling-stroke"/>`).join('');
+    h += `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${g.t}: último valor ${Math.round(ult)} ${g.u}">
+      ${rej}<line x1="0" x2="${W}" y1="${H}" y2="${H}" stroke="var(--line-2)" vector-effect="non-scaling-stroke"/>
+      ${trazo}<line class="cruz" y1="0" y2="${H}" stroke="var(--fg)" stroke-opacity=".45" vector-effect="non-scaling-stroke" visibility="hidden"/></svg>
+      <div class="ejes"><span>${et(ini)}</span><span>${g.min}–${g.max} ${g.u}</span><span>${et(fin)}</span></div><div class="tip" hidden></div>`;
+    el.innerHTML = h;
+    const svg = el.querySelector('svg'), tip = el.querySelector('.tip'), cruz = el.querySelector('.cruz');
+    const mover = ev => {
+      const r = svg.getBoundingClientRect(), x = (ev.clientX - r.left) / r.width * W;
+      let p = datos[0];
+      for (const d of datos) if (Math.abs(X(d.t) - x) < Math.abs(X(p.t) - x)) p = d;
+      cruz.setAttribute('x1', X(p.t)); cruz.setAttribute('x2', X(p.t)); cruz.setAttribute('visibility', 'visible');
+      tip.hidden = false; tip.textContent = `${larga ? ddmm(p.t) + ' ' : ''}${hhmm(p.t)} · ${Math.round(p.v)} ${g.u}`;
+      tip.style.left = `${Math.min(Math.max(X(p.t) / W * 100, 18), 82)}%`;
+    };
+    svg.addEventListener('pointermove', mover);
+    svg.addEventListener('pointerdown', mover);
+    svg.addEventListener('pointerleave', () => { tip.hidden = true; cruz.setAttribute('visibility', 'hidden'); });
+  });
+  const tramo = S.tramo >= 3600 ? S.tramo / 3600 + ' h' : S.tramo / 60 + ' min';
+  $('tel-nota').textContent = `Media por tramos de ${tramo} · Pi cada ${S.cada.pi / 60} min · PC cada ${S.cada.pc / 60} min con el PC encendido · se guardan 30 días`;
+}
+async function cargarSeries(){
+  clearTimeout(timerS);
+  document.querySelectorAll('#rangos button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.r === rango)));
+  try {
+    const r = await fetch('/api/series?rango=' + rango, {cache: 'no-store'});
+    if (r.ok){ S = await r.json(); pintarGraficas(); }
+  } catch (_) {}
+  if (!document.hidden) timerS = setTimeout(cargarSeries, 60000);
+}
+document.querySelectorAll('#rangos button').forEach(b => b.onclick = () => {
+  rango = b.dataset.r;
+  try { localStorage.setItem('rango', rango); } catch (_) {}
+  cargarSeries();
+});
+
+// --- navegacion lateral: marca la seccion visible -------------------------------------------------
+const enlaces = [...document.querySelectorAll('.lateral a')];
+const obs = new IntersectionObserver(ents => ents.forEach(e => {
+  if (e.isIntersecting) enlaces.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + e.target.id));
+}), {rootMargin: '-45% 0px -50% 0px'});
+['inicio', 'control', 'scripts', 'terminal', 'rendimiento'].forEach(id => obs.observe($(id)));
+
+// --- bucle -----------------------------------------------------------------------------------------
+async function refrescar(){
+  clearTimeout(timer);
+  try {
+    const res = await fetch('/api/estado', {cache: 'no-store'});
+    if (res.status === 401) return void (location.href = '/entrar');
+    E = await res.json();
+    if (reiniciando) return location.reload();
+    pintarPC(); pintarServicios(); pintarScripts(); pintarTerminal();
+    primera = false;
+    $('act').textContent = 'Actualizado ' + hhmm(E.ahora);
+  } catch (_) {
+    $('act').textContent = 'Sin conexión con la Pi';
+    $('sis-dot').className = 'dot err'; $('sis-txt').textContent = 'Pi sin respuesta';
+  }
+  if (!document.hidden || reiniciando) timer = setTimeout(refrescar, reiniciando ? 4000 : ocupado() ? 1500 : 15000);
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden){ refrescar(); cargarSeries(); } });
+
+function aviso(txt, err){
+  const T = $('toast'); T.textContent = txt; T.className = 'toast' + (err ? ' err' : ''); T.hidden = false;
+  clearTimeout(aviso.t); aviso.t = setTimeout(() => T.hidden = true, 5000);
+}
+async function post(url){
+  const res = await fetch(url, {method: 'POST', headers: {'X-CSRF': CSRF}});
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(j.error || 'Operación no completada');
+  return j;
+}
+async function accion(nombre){
+  try {
+    vista = (await post('/api/accion/' + nombre)).id;
+    $('terminal').scrollIntoView({block: 'nearest'});
+  } catch (e) { aviso(e.message, true); }
+  refrescar();
+}
+function confirmar(titulo, texto, boton, fn){
+  $('dlg-t').textContent = titulo; $('dlg-p').textContent = texto; $('dlg-si').textContent = boton;
+  $('dlg-si').onclick = () => { $('dlg').close(); fn(); };
+  $('dlg').showModal();
+}
+$('dlg-no').onclick = () => $('dlg').close();
+
+$('c-encender').onclick = () => accion('encender');
+$('c-apagar').onclick = () => confirmar('Apagar el PC', 'Se apagará en 15 segundos. Lo que no esté guardado se perderá.', 'Apagar', () => accion('apagar'));
+$('c-reiniciar').onclick = () => confirmar('Reiniciar el PC', 'Se reiniciará en 10 segundos. Lo que no esté guardado se perderá.', 'Reiniciar', () => accion('reiniciar'));
+$('c-suspender').onclick = () => confirmar('Suspender el PC', 'El PC se dormirá. Se despierta con Encender (Wake on LAN).', 'Suspender', () => accion('suspender'));
+async function sesion(a){
+  try { await post('/api/pc/sesion/' + a); aviso(a === 'bloquear' ? 'Sesión bloqueada' : 'Cerrando la sesión'); }
+  catch (e) { aviso(e.message, true); }
+  refrescar();
+}
+$('c-bloquear').onclick = () => sesion('bloquear');
+$('c-cerrar').onclick = () => confirmar('Cerrar la sesión', 'Se cerrarán todas las aplicaciones abiertas en el PC.', 'Cerrar sesión', () => sesion('cerrar'));
+$('s-limpiar').onclick = () => confirmar('Limpieza RNX /todo',
+  'Se ejecuta en la sesión abierta del PC: reinicia el Explorador, vacía cachés y papelera y borra los registros de eventos.', 'Ejecutar', () => accion('limpiar'));
+$('s-nat').onclick = () => accion('nat');
+$('s-simular').onclick = () => accion('probar');
+$('s-recargar').onclick = () => confirmar(`Recargar ${IMPORTE} € en Casa Ortega`,
+  `Se cobrarán ${IMPORTE} € a la tarjeta Pluxee. ` + (E.servicios.pc.estado === 'encendido'
+    ? 'El PC está encendido y seguirá encendido.' : 'El PC se encenderá para la recarga y se apagará al terminar.'),
+  `Cobrar ${IMPORTE} €`, () => accion('recargar'));
+$('b-pi').onclick = () => confirmar('Reiniciar la Raspberry Pi',
+  'El panel, el bot de Discord y su panel estarán fuera de servicio 1-2 minutos. La reconexión es automática.', 'Reiniciar', async () => {
+    try { await post('/api/pi/reiniciar'); reiniciando = true; $('velo').hidden = false; setTimeout(refrescar, 15000); }
+    catch (e) { aviso(e.message, true); }
+  });
+$('jig').onclick = async () => {
+  const jig = $('jig'), activar = jig.getAttribute('aria-checked') !== 'true';
+  jig.dataset.ocupado = '1'; jig.disabled = true;
+  jig.setAttribute('aria-checked', String(activar));
+  try { await post('/api/jiggler/' + (activar ? 'on' : 'off')); aviso(activar ? 'Anti-bloqueo activado' : 'Anti-bloqueo desactivado'); }
+  catch (e) { jig.setAttribute('aria-checked', String(!activar)); aviso(e.message, true); }
+  jig.dataset.ocupado = '';
+  refrescar();
+};
+refrescar();
+cargarSeries();
+</script>
+</body>
+</html>

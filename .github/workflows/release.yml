@@ -1,0 +1,165 @@
+name: 📦 Auto Release
+
+# Cada push a main: el workflow lee el/los commit(s), decide el tipo de cambio
+# (major / feature / minor / fix) y calcula la nueva versión MAJOR.FEATURE.MINOR.fFIX
+# (ej. 1.2.3.f1). Después ACTUALIZA VERSION, CREA LA TAG y PUBLICA LA RELEASE con el ZIP.
+# Todo automático: no hay que crear tags ni releases a mano.
+#
+# Detección por el NÚMERO DE LÍNEAS CAMBIADAS en el push (añadidas + borradas,
+# sin contar VERSION ni CHANGELOG.md, que los toca el propio workflow):
+#   MAJOR   -> >= UMBRAL_MAJOR líneas    (resetea feature/minor/fix)
+#   FEATURE -> >= UMBRAL_FEATURE líneas  (resetea minor/fix)
+#   MINOR   -> >= UMBRAL_MINOR líneas    (resetea fix)
+#   FIX     -> menos que eso             (sube solo .fN)
+# Los umbrales se ajustan en el paso "Calcular versión".
+#
+# Atajos opcionales por mensaje: si el commit lleva "BREAKING CHANGE" o "major:"
+# fuerza MAJOR aunque sean pocas líneas. Y desde el botón "Run workflow" puedes
+# escribir la versión exacta que quieras.
+#
+# La PRIMERA vez (sin tags) publica la versión del fichero VERSION tal cual (baseline).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:        # botón "Run workflow" en la pestaña Actions
+    inputs:
+      version:
+        description: 'Versión exacta a publicar (ej. 1.0.0.f0). Vacío = calcular automáticamente'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || !startsWith(github.event.head_commit.message, 'chore(release)') }}
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🧮 Calcular versión
+        id: ver
+        run: |
+          # Ordenamos por versión real (no por fecha): con tags ligeras, --sort=creatordate
+          # usa la fecha del commit y puede devolver una tag antigua como "la última".
+          # Versión forzada a mano desde el botón "Run workflow"
+          FORZADA="${{ github.event.inputs.version }}"
+          if [ -n "$FORZADA" ]; then
+            NEW="${FORZADA#v}"
+            echo "tipo=manual"  >> "$GITHUB_OUTPUT"
+            echo "new=$NEW"     >> "$GITHUB_OUTPUT"
+            echo "::notice::Versión forzada a mano: v$NEW"
+            exit 0
+          fi
+
+          LAST_TAG="$(git tag --list 'v*' | sed 's/^v//' | sort -t. -k1,1n -k2,2n -k3,3n -k4,4V | tail -1)"
+          [ -n "$LAST_TAG" ] && LAST_TAG="v$LAST_TAG"
+
+          if [ -z "$LAST_TAG" ]; then
+            # Primera release: usar el fichero VERSION tal cual, sin bump
+            NEW="$(cat VERSION 2>/dev/null || echo '0.0.0.f0')"
+            TIPO=baseline
+            echo "::notice::Primera release (baseline): v$NEW"
+          else
+            CUR="${LAST_TAG#v}"
+            MAJOR=$(echo "$CUR"   | cut -d. -f1)
+            FEATURE=$(echo "$CUR" | cut -d. -f2)
+            MINOR=$(echo "$CUR"   | cut -d. -f3)
+            FIX=$(echo "$CUR"     | cut -d. -f4 | tr -d 'f')
+            MAJOR=${MAJOR:-0}; FEATURE=${FEATURE:-0}; MINOR=${MINOR:-0}; FIX=${FIX:-0}
+
+            # ---- UMBRALES (líneas cambiadas) ----
+            UMBRAL_MAJOR=1200
+            UMBRAL_FEATURE=250
+            UMBRAL_MINOR=50
+            # -------------------------------------
+
+            BEFORE="${{ github.event.before }}"
+            if [ -n "$BEFORE" ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+              RANGO="$BEFORE..HEAD"
+            else
+              RANGO="$LAST_TAG..HEAD"
+              git cat-file -e "$LAST_TAG^{commit}" 2>/dev/null || RANGO="HEAD~1..HEAD"
+            fi
+
+            # líneas añadidas + borradas, ignorando lo que toca el propio workflow
+            LINEAS="$(git diff --numstat "$RANGO" -- . \
+                        ':(exclude)VERSION' ':(exclude)CHANGELOG.md' 2>/dev/null \
+                      | awk '{ a=($1=="-"?0:$1); b=($2=="-"?0:$2); s+=a+b } END { print s+0 }')"
+            [ -z "$LINEAS" ] && LINEAS=0
+
+            MSG="$(git log --format='%s%n%b' "$RANGO" 2>/dev/null)"
+            [ -z "$MSG" ] && MSG="$(git log -1 --format='%s%n%b')"
+            L="$(echo "$MSG" | tr '[:upper:]' '[:lower:]')"
+
+            echo "::notice::Líneas cambiadas en $RANGO: $LINEAS"
+
+            if echo "$L" | grep -qE 'breaking change|(^|[^a-z])major(:|!)|!:'; then
+              TIPO=major;   MAJOR=$((MAJOR+1)); FEATURE=0; MINOR=0; FIX=0
+            elif [ "$LINEAS" -ge "$UMBRAL_MAJOR" ]; then
+              TIPO=major;   MAJOR=$((MAJOR+1)); FEATURE=0; MINOR=0; FIX=0
+            elif [ "$LINEAS" -ge "$UMBRAL_FEATURE" ]; then
+              TIPO=feature; FEATURE=$((FEATURE+1)); MINOR=0; FIX=0
+            elif [ "$LINEAS" -ge "$UMBRAL_MINOR" ]; then
+              TIPO=minor;   MINOR=$((MINOR+1)); FIX=0
+            else
+              TIPO=fix;     FIX=$((FIX+1))
+            fi
+            NEW="${MAJOR}.${FEATURE}.${MINOR}.f${FIX}"
+            # si esa tag ya existe (relanzado a mano), subimos el fix hasta encontrar hueco
+            while git rev-parse "v$NEW" >/dev/null 2>&1; do
+              FIX=$((FIX+1)); NEW="${MAJOR}.${FEATURE}.${MINOR}.f${FIX}"
+            done
+            echo "::notice::$LINEAS líneas -> '$TIPO': v$CUR -> v$NEW"
+          fi
+
+          echo "tipo=$TIPO"     >> "$GITHUB_OUTPUT"
+          echo "new=$NEW"       >> "$GITHUB_OUTPUT"
+          echo "lineas=${LINEAS:-0}" >> "$GITHUB_OUTPUT"
+
+      - name: 🔢 Actualizar VERSION
+        run: |
+          echo -n "${{ steps.ver.outputs.new }}" > VERSION
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add VERSION
+          git commit -m "chore(release): v${{ steps.ver.outputs.new }} [skip ci]" && git push || echo "VERSION ya estaba al día"
+
+      - name: 📝 Notas de la release
+        run: |
+          VER="${{ steps.ver.outputs.new }}"
+          awk -v v="$VER" '$0 ~ "^## \\[" v "\\]" {flag=1; next} /^## \[/ {if(flag) exit} flag {print}' CHANGELOG.md > NOTAS.md
+          if [ ! -s NOTAS.md ]; then
+            BEFORE="${{ github.event.before }}"
+            {
+              echo "### Cambios (v$VER · ${{ steps.ver.outputs.tipo }} · ${{ steps.ver.outputs.lineas }} líneas)"
+              if [ -n "$BEFORE" ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+                git log --pretty='- %s' "$BEFORE..HEAD"
+              else
+                git log -1 --pretty='- %s'
+              fi
+            } > NOTAS.md
+          fi
+
+      - name: 📦 Empaquetar ZIP
+        run: |
+          NAME="ZeroDesk-v${{ steps.ver.outputs.new }}.zip"
+          zip -rq "$NAME" . \
+            -x ".git/*" ".github/*" "*.env" "estado.json" "*/estado.json" \
+               "eventos.json" "*/eventos.json" "*.db" "logs/*" "out/*" \
+               "*__pycache__*" "*.pyc" "NOTAS.md"
+          echo "ZIP=$NAME" >> "$GITHUB_ENV"
+
+      - name: 🚀 Crear tag + Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.ver.outputs.new }}
+          name: ZeroDesk v${{ steps.ver.outputs.new }}
+          target_commitish: main
+          body_path: NOTAS.md
+          files: ${{ env.ZIP }}

@@ -1,0 +1,18 @@
+[Unit]
+Description=Panel remoto RNX PC
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=renox
+WorkingDirectory=/home/renox/recarga-web
+ExecStart=/home/renox/recarga-web/venv/bin/python /home/renox/recarga-web/app.py
+Restart=always
+RestartSec=5
+# La Pi va justa de RAM: que esto nunca le quite sitio al bot de Discord.
+MemoryMax=100M
+OOMScoreAdjust=500
+
+[Install]
+WantedBy=multi-user.target

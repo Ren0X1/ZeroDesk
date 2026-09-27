@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A1220">
+<title>RNX Panel remoto</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="{{ url_for('static', filename='estilo.css') }}">
+</head>
+<body>
+<div class="acceso">
+  <form method="post">
+    <div class="marca">
+      {% include "_logo.html" %}
+      <div><b>RNX PANEL</b><span>Remote control</span></div>
+    </div>
+    <input id="pw" name="password" type="password" placeholder="Contraseña" autocomplete="current-password" autofocus required>
+    {% if error %}<p class="err-text">{{ error }}</p>{% endif %}
+    <button class="btn prim">Entrar</button>
+  </form>
+</div>
+</body>
+</html>

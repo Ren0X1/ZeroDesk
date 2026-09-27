@@ -1,0 +1,15 @@
+# Secretos y estado local: nunca al repo
+.env
+*.env
+!.env.example
+estado.json
+eventos.json
+telemetria.db
+*.tmp
+
+# Generado al ejecutar
+logs/
+out/
+__pycache__/
+*.pyc
+venv/
