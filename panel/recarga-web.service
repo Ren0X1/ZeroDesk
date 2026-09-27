@@ -1,13 +1,14 @@
 [Unit]
-Description=Panel remoto RNX PC
+Description=ZeroDesk - Panel remoto RNX PC
 After=network-online.target tailscaled.service
 Wants=network-online.target
 
 [Service]
 Type=simple
 User=renox
-WorkingDirectory=/home/renox/recarga-web
-ExecStart=/home/renox/recarga-web/venv/bin/python /home/renox/recarga-web/app.py
+# Corre directamente desde el repo clonado: se actualiza con panel/actualizar.sh
+WorkingDirectory=/home/renox/ZeroDesk/panel
+ExecStart=/home/renox/ZeroDesk/panel/venv/bin/python /home/renox/ZeroDesk/panel/app.py
 Restart=always
 RestartSec=5
 # La Pi va justa de RAM: que esto nunca le quite sitio al bot de Discord.

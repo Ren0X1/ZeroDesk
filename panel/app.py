@@ -662,15 +662,16 @@ NAT_PS1 = os.environ.get("NAT_PS1", r"C:\Users\alex-\Documents\Git\T6-Open-Nat-S
 
 def t_nat(tr: Trabajo) -> None:
     """RNX Port Forwarder: puerto 3074 TCP/UDP en el firewall y en el router
-    (UPnP). Por SSH ya se entra como administrador. Al final el script espera
-    una tecla; sin consola esa lectura falla y termina solo."""
+    (UPnP). Por SSH ya se entra como administrador. El script acaba esperando
+    una tecla que sin consola no llega nunca: pc/nat.ps1 lo lanza, recoge la
+    salida y lo cierra en cuanto llega a ese punto."""
     t0 = time.monotonic()
     tr.paso("run", "run")
     if not pc_encendido(timeout=3):
         tr.paso("run", "fail", "PC apagado")
         tr.fin("err", "PC fuera de línea", "Encender el PC antes de abrir el puerto.")
         return
-    _, salida = ssh_corto(f'powershell -NoProfile -ExecutionPolicy Bypass -File "{NAT_PS1}" < NUL', 120)
+    _, salida = ssh_corto(ps_pc("nat.ps1", "-Script", f'"{NAT_PS1}"'), 120)
     utiles = [l.strip() for l in salida.splitlines() if re.match(r"\s*\[[*+~!]\]", l)]
     for l in utiles:
         tr.log(l)
