@@ -115,10 +115,9 @@ ZeroDesk/
 ### 2️⃣ Raspberry Pi
 ```bash
 git clone https://github.com/Ren0X1/ZeroDesk.git
-cd ZeroDesk/panel
-sudo bash instalar.sh
+sudo bash ZeroDesk/panel/instalar.sh
 ```
-It creates the venv, generates the SSH key for the PC, asks for the panel password, installs the reboot rule and enables the `recarga-web` service. Then check `~/recarga-web/.env` (`PC_IP`, `PC_MAC`, `TG_TOKEN`, `TG_CHAT_ID`).
+The panel runs **straight from the cloned repo** (`~/ZeroDesk/panel`). The installer creates the venv, generates the SSH key for the PC, asks for the panel password, installs the sudo rule and enables the `recarga-web` service so it **starts on every boot**. Then check `~/ZeroDesk/panel/.env` (`PC_IP`, `PC_MAC`, `PC_DIR`, `TG_TOKEN`, `TG_CHAT_ID`).
 
 ### 3️⃣ Open it
 `http://<pi-tailscale-ip>:6678` from any device on your tailnet. 📱
@@ -128,10 +127,13 @@ It creates the venv, generates the SSH key for the PC, asks for the panel passwo
 ## 🛠️ Day to day
 
 ```bash
+bash ~/ZeroDesk/panel/actualizar.sh              # 🔄 update: git pull + restart (config and history are kept)
 systemctl status recarga-web                     # is the panel up?
 journalctl -u recarga-web -n 50 --no-pager       # what happened
-cd ~/recarga-web && venv/bin/python cambiar_password.py && sudo systemctl restart recarga-web
+cd ~/ZeroDesk/panel && venv/bin/python cambiar_password.py && sudo systemctl restart recarga-web
 ```
+
+On the PC nothing needs restarting: the Pi calls the scripts in `pc/` and `recarga.py` from the repo folder on every run, so a `git pull` there is enough.
 
 ---
 
@@ -141,7 +143,7 @@ cd ~/recarga-web && venv/bin/python cambiar_password.py && sudo systemctl restar
 - 🌐 The panel is meant to be reached **only through Tailscale** — nothing is exposed to the internet.
 - 🧂 Panel password stored as a salted hash; **5 wrong attempts → 15 min lockout** + Telegram alert.
 - 🛡️ Session cookie `HttpOnly` + `SameSite=Strict`, and a CSRF token on every action.
-- 🧯 The Pi's sudo rights are limited to exactly `systemctl reboot`.
+- 🧯 The Pi's sudo rights are limited to exactly two commands: `systemctl reboot` and `systemctl restart recarga-web`.
 - 💳 Card data lives only in the PC's `.env` (git-ignored). The top-up is **once a day max** and **never retries by itself**: a blind retry could charge twice.
 
 ---
