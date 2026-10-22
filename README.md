@@ -13,7 +13,7 @@ The Pi is always on and sips power; the PC only runs when there is something to 
 | Area | Technology |
 |------|------------|
 | Panel backend | Python 3.13 · Flask 3 · waitress |
-| Panel frontend | Vanilla HTML + CSS + JS — inline SVG icons and charts, zero dependencies |
+| Panel frontend | Vanilla HTML + CSS + JS — inline SVG icons and charts, zero dependencies · *Terminal* theme (Public Sans + JetBrains Mono) |
 | Telemetry | SQLite (`telemetria.db`), 30 days of history, bucketed on the fly per range |
 | PC control | OpenSSH Server on Windows (key auth only) + PowerShell 5.1 scripts |
 | Power on | Wake on LAN magic packet (UDP broadcast from the Pi) |
@@ -29,11 +29,32 @@ The Pi is always on and sips power; the PC only runs when there is something to 
 
 ## ✨ What the panel does
 
+### 🎨 The screen
+A dense dark *Terminal* theme: figures in a monospace so they line up, and every selection (section, range, metric) marked by a 1 px line in RNX teal. On a phone the side rail becomes a bottom bar.
+
+```
+┌ RNX Panel ─────────────────────────────────────────── ● Todo operativo · 13:27 ┐
+│ ⌂ │ RNXPC                              [ ⏻ Apagar ] │ Control                  │
+│ ‹›│ ● En línea · encendido hace 3 h 20 min           │ Encender Apagar Reiniciar│
+│ ▣ │ Todo en orden.                                   │ Suspender Bloquear Salir │
+│ ▥ │ Este navegador ─VPN─ Raspberry Pi ─WoL·SSH─ PC   │ Anti-bloqueo        [○ ] │
+│ ☰ │ CPU 18 %  RAM 41 %  Disco 56 %  GPU 9 %  47 °C   │                          │
+│   ├──────────────────────┬───────────────────────────┴──────────────────────────┤
+│   │ Scripts              │ Terminal (live steps or the operation log)           │
+│   ├──────────────────────┴──────────────────────────────────────────────────────┤
+│   │ Rendimiento  [PC CPU|PC RAM|GPU °C|Pi CPU|Pi RAM|Pi °C]       1h 6h 24h 7d 30d│
+│   │ one large chart with scale, times and hover tooltip                         │
+│   ├─────────────────────────────────────────────────────────────────────────────┤
+│   │ Sistema: PC info · services and latency · Raspberry Pi                      │
+└───┴─────────────────────────────────────────────────────────────────────────────┘
+```
+
 ### 🩺 Monitor
-- 📊 **System status** — CPU, RAM, disk C:, GPU load, GPU temperature and uptime with live bars.
-- 🧾 **PC info** — hostname, Windows edition and build, CPU, GPU, local and public IP, session state.
-- 🌐 **Services** — casaortega.com, the Redsys payment gateway and the Telegram API, with latency; plus the Pi's own CPU, RAM and temperature.
-- 📈 **Performance charts** — PC CPU / RAM / GPU temp and Pi CPU / RAM / temp, with **1H · 6H · 24H · 7D · 30D** ranges and hover tooltips. Gaps (PC off, Pi rebooting) break the line instead of lying.
+- 🖥️ **Summary** — the PC's name, state and uptime, one main button (*Power on* when it is off, *Shut down* when it is on) and a one-line diagnosis: *all good*, *disk C: at 92 %*, *GPU at 82 °C*, *waiting at the login screen*…
+- 🔗 **Command path** — browser → Raspberry Pi → PC, each with its own status dot, so you see at a glance which link is down.
+- 📊 **Live metrics** — CPU, RAM, disk C:, GPU load and GPU temperature; the bar turns amber and then red past its threshold.
+- 📈 **Performance** — one large chart; pick the metric (PC CPU / RAM / GPU temp, Pi CPU / RAM / temp) in cells that already show its latest value and its peak, with **1 h · 6 h · 24 h · 7 d · 30 d** ranges, a real scale and hover tooltips. Gaps (PC off, Pi rebooting) break the line instead of lying.
+- 🧾 **System** — Windows edition, CPU, GPU, public IP and session; casaortega.com, Redsys and the Telegram API with their latency; the Pi's CPU, RAM, temperature and uptime.
 
 ### 🎛️ Control
 | Button | How it works |
@@ -77,7 +98,7 @@ flowchart LR
 ZeroDesk/
 ├── panel/                  # 🍓 runs on the Raspberry Pi
 │   ├── app.py              #    Flask app: monitor thread, jobs, API
-│   ├── templates/ static/  #    dashboard UI
+│   ├── templates/ static/  #    dashboard UI (panel, login) and its single stylesheet
 │   ├── instalar.sh         #    one-shot installer (venv, SSH key, sudoers, systemd)
 │   ├── cambiar_password.py #    set / change the panel password
 │   └── recarga-web.service
@@ -128,6 +149,7 @@ The panel runs **straight from the cloned repo** (`~/ZeroDesk/panel`). The insta
 
 ```bash
 bash ~/ZeroDesk/panel/actualizar.sh              # 🔄 update: git pull + restart (config and history are kept)
+                                                 #    the stylesheet URL carries VERSION, so browsers pick up the new look at once
 systemctl status recarga-web                     # is the panel up?
 journalctl -u recarga-web -n 50 --no-pager       # what happened
 cd ~/ZeroDesk/panel && venv/bin/python cambiar_password.py && sudo systemctl restart recarga-web

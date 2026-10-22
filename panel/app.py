@@ -79,6 +79,13 @@ DB = AQUI / "telemetria.db"
 RANGOS = {"1h": (3600, 60), "6h": (6 * 3600, 300), "24h": (86400, 900),
           "7d": (7 * 86400, 3600), "30d": (30 * 86400, 4 * 3600)}
 
+# Version del repo: la hoja de estilos la lleva en la URL para que el navegador
+# no se quede con la antigua tras actualizar.
+try:
+    VERSION = (AQUI.parent / "VERSION").read_text(encoding="utf-8").strip()
+except OSError:
+    VERSION = "0"
+
 UA = "Mozilla/5.0 (X11; Linux aarch64) PanelRNX/2.0"
 NOMBRE = "Panel remoto RNX PC"
 
@@ -864,7 +871,7 @@ def entrar():
                 evento("err", "5 intentos de acceso fallidos: bloqueo de 15 min")
             else:
                 error = f"Código incorrecto. Intentos restantes: {quedan}."
-    return render_template("entrar.html", error=error)
+    return render_template("entrar.html", error=error, v=VERSION)
 
 
 @app.post("/salir")
@@ -876,7 +883,7 @@ def salir():
 @app.get("/")
 @requiere_login
 def panel():
-    return render_template("panel.html", csrf=session["csrf"], importe=IMPORTE)
+    return render_template("panel.html", csrf=session["csrf"], importe=IMPORTE, v=VERSION)
 
 
 @app.get("/api/estado")
