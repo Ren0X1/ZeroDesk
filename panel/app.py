@@ -22,6 +22,8 @@ veces que se pulse el boton, solo se cobra una.
 
 Configuracion: .env junto a este fichero (ver .env.example).
 """
+import contextlib
+import ctypes
 import functools
 import json
 import os
@@ -44,6 +46,21 @@ from waitress import serve
 from werkzeug.security import check_password_hash
 
 AQUI = Path(__file__).resolve().parent
+
+# La Pi tiene 415 MB. glibc abre una zona de memoria por hilo y no devuelve lo
+# que se libera: el panel llegaba a ~170 MB. Dos zonas como mucho y, en cada
+# vuelta del monitor, malloc_trim devuelve al sistema lo que sobra.
+try:
+    _libc = ctypes.CDLL("libc.so.6")
+    _libc.mallopt(-8, 2)  # M_ARENA_MAX
+except OSError:  # fuera de Linux (pruebas en Windows)
+    _libc = None
+
+
+def devolver_memoria() -> None:
+    if _libc:
+        _libc.malloc_trim(0)
+
 load_dotenv(AQUI / ".env")
 
 PUERTO = int(os.environ.get("WEB_PORT", "6678"))
@@ -134,10 +151,20 @@ def evento(nivel: str, texto: str) -> None:
 # --- telemetria (SQLite) -----------------------------------------------------
 
 def db():
+    """Conexion para usar con `with db() as con:`; se cierra al salir."""
     con = sqlite3.connect(DB, timeout=10)
     con.execute("CREATE TABLE IF NOT EXISTS muestras (origen TEXT, t INTEGER, cpu REAL, ram REAL, temp REAL)")
     con.execute("CREATE INDEX IF NOT EXISTS i_muestras ON muestras (origen, t)")
-    return con
+    return _cerrando(con)
+
+
+@contextlib.contextmanager
+def _cerrando(con):
+    try:
+        with con:  # commit o rollback
+            yield con
+    finally:
+        con.close()
 
 
 def guardar_muestra(origen, cpu, ram, temp) -> None:
@@ -385,6 +412,7 @@ def monitor() -> None:
             comprobar_telegram()
             ip_publica()
 
+        devolver_memoria()
         despertar_monitor.wait(CADA_PC)
         despertar_monitor.clear()
 
@@ -974,4 +1002,4 @@ def api_reiniciar_pi():
 
 if __name__ == "__main__":
     threading.Thread(target=monitor, daemon=True).start()
-    serve(app, host="0.0.0.0", port=PUERTO, threads=6)
+    serve(app, host="0.0.0.0", port=PUERTO, threads=3)
