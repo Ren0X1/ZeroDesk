@@ -1,6 +1,6 @@
 """
-Panel remoto RNX PC: panel en la Pi para vigilar y manejar el PC desde
-cualquier sitio (por Tailscale).
+ZeroDesk: panel en la Pi para vigilar y manejar el PC y el bot de Discord
+desde cualquier sitio (por Tailscale).
 
 Que vigila (hilo `monitor`, siempre en marcha):
   - el PC: si esta encendido (su SSH contesta) y, cada 10 min, CPU, RAM, GPU,
@@ -11,11 +11,12 @@ Las lecturas se guardan 30 dias en SQLite (telemetria.db) para las graficas.
 
 Que hace (cada accion es un "trabajo" en un hilo aparte, de uno en uno):
   - encender (Wake on LAN) y apagar el PC;
-  - limpiador RNX (/todo), por la tarea programada "RNX Cache Cleaner";
   - recargar / probar la recarga del monedero de Casa Ortega: enciende el PC
     si hace falta, lanza recarga.py por SSH y, si lo encendio el panel, lo
     vuelve a apagar;
-  - activar y desactivar el jiggler (directo, no es un trabajo).
+  - activar y desactivar el jiggler (directo, no es un trabajo);
+  - el bot de Discord (el RGL BOT, en la misma Pi): estado, arrancar, parar,
+    reiniciar, actualizar (su startup.sh), logs, su .env y la memoria de su IA.
 
 El candado de "una recarga al dia" lo pone recarga.py en el PC: por muchas
 veces que se pulse el boton, solo se cobra una.
@@ -78,7 +79,6 @@ TG_CHAT_ID = os.environ.get("TG_CHAT_ID", "")
 ESPERA_ARRANQUE = 240   # s que se espera a que Windows responda tras el WoL
 ESPERA_APAGADO = 180    # s que se espera a que el PC deje de responder
 ESPERA_RECARGA = 600    # s maximos para todo recarga.py
-ESPERA_LIMPIEZA = 3600  # s maximos para el limpiador
 CADA_PC = 15            # s entre comprobaciones de si el PC esta encendido
 CADA_PI = 60            # s entre lecturas de la Pi
 CADA_METRICAS = int(os.environ.get("CADA_METRICAS", "600"))  # s entre lecturas del PC
@@ -104,7 +104,7 @@ except OSError:
     VERSION = "0"
 
 UA = "Mozilla/5.0 (X11; Linux aarch64) PanelRNX/2.0"
-NOMBRE = "Panel remoto RNX PC"
+NOMBRE = "ZeroDesk"
 
 app = Flask(__name__)
 app.secret_key = os.environ["WEB_SECRET"]
@@ -628,104 +628,6 @@ def t_apagar(tr: Trabajo) -> None:
         evento("err", "El PC no se ha apagado")
 
 
-def t_limpiar(tr: Trabajo) -> None:
-    t0 = time.monotonic()
-    tr.paso("check", "run")
-    if not pc_encendido(timeout=3):
-        tr.paso("check", "fail", "PC apagado")
-        tr.paso("run", "skip", "")
-        tr.fin("err", "PC fuera de línea", "Encender el PC antes de lanzar la limpieza.")
-        return
-    codigo, salida = ssh_corto(ps_pc("limpiador.ps1", "lanzar"))
-    if "sin_sesion" in salida:
-        tr.paso("check", "fail", "Sin sesión iniciada")
-        tr.paso("run", "skip", "")
-        tr.fin("err", "Sin sesión iniciada en el PC",
-               "El limpiador reinicia el Explorador y aplica la configuración del ratón: necesita una sesión abierta.")
-        return
-    if "ya_en_marcha" in salida:
-        tr.paso("check", "fail", "Ya hay una limpieza en curso")
-        tr.paso("run", "skip", "")
-        tr.fin("err", "Limpieza ya en curso")
-        return
-    m = re.search(r"^(\d+)$", salida, re.M)
-    if codigo != 0 or not m:
-        tr.paso("check", "fail", "No se ha podido lanzar la tarea")
-        tr.paso("run", "skip", "")
-        tr.fin("err", "No se ha podido lanzar el limpiador", salida[-200:])
-        return
-    desde = int(m.group(1))
-    tr.paso("check", "done", "Tarea «RNX Cache Cleaner» lanzada", t0)
-    tr.paso("run", "run", "Backup de Steam y limpieza en curso")
-    t1 = time.monotonic()
-    fin = False
-    time.sleep(4)
-    while time.monotonic() - t1 < ESPERA_LIMPIEZA:
-        codigo, salida = ssh_corto(ps_pc("limpiador.ps1", "estado", "-Desde", str(desde)))
-        linea = next((l for l in salida.splitlines() if l.startswith("{")), None)
-        if linea:
-            d = json.loads(linea)
-            nuevas = d.get("lineas") or []
-            if isinstance(nuevas, str):
-                nuevas = [nuevas]
-            for l in nuevas:
-                tr.log(l.strip())
-                fin = fin or "FIN MODO /todo" in l
-            desde += len(nuevas)
-            if nuevas:
-                ultima = re.sub(r"^\[[^\]]+\]\s*", "", nuevas[-1].strip())
-                tr.paso("run", "run", ultima[:120])
-            if d.get("estado") != "Running":
-                break
-        time.sleep(5)
-    errores = [l for l in tr.d["log"] if "ERROR" in l]
-    if fin:
-        tr.paso("run", "done", f"{len(tr.d['log'])} operaciones registradas", t1)
-        tr.fin("ok" if not errores else "err",
-               "Limpieza completada" if not errores else "Limpieza completada con errores",
-               "; ".join(e.split("] ", 1)[-1] for e in errores[:3]))
-        evento("ok" if not errores else "err",
-               "Limpieza RNX /todo completada" + (f" ({len(errores)} errores)" if errores else ""))
-    else:
-        tr.paso("run", "fail", "Terminada sin marca de fin en el log", t1)
-        tr.fin("err", "Limpieza interrumpida", "Revisar RNX_Cleaner.log en el PC.")
-        evento("err", "Limpieza RNX interrumpida")
-
-
-NAT_PS1 = os.environ.get("NAT_PS1", r"C:\Users\alex-\Documents\Git\T6-Open-Nat-Script\RNX-PortForward-3074.ps1")
-
-
-def t_nat(tr: Trabajo) -> None:
-    """RNX Port Forwarder: puerto 3074 TCP/UDP en el firewall y en el router
-    (UPnP). Por SSH ya se entra como administrador. El script acaba esperando
-    una tecla que sin consola no llega nunca: pc/nat.ps1 lo lanza, recoge la
-    salida y lo cierra en cuanto llega a ese punto."""
-    t0 = time.monotonic()
-    tr.paso("run", "run")
-    if not pc_encendido(timeout=3):
-        tr.paso("run", "fail", "PC apagado")
-        tr.fin("err", "PC fuera de línea", "Encender el PC antes de abrir el puerto.")
-        return
-    _, salida = ssh_corto(ps_pc("nat.ps1", "-Script", f'"{NAT_PS1}"'), 120)
-    utiles = [l.strip() for l in salida.splitlines() if re.match(r"\s*\[[*+~!]\]", l)]
-    for l in utiles:
-        tr.log(l)
-    fallos_nat = [l[4:] for l in utiles if l.startswith("[!]")]
-    hechos = [l for l in utiles if l[:3] in ("[+]", "[~]")]
-    if not utiles:
-        tr.paso("run", "fail", "Sin salida del script", t0)
-        tr.fin("err", "No se ha podido ejecutar el script", salida[-200:])
-        evento("err", "Open NAT 3074: el script no se ha ejecutado")
-    elif fallos_nat:
-        tr.paso("run", "fail", f"{len(hechos)} correctos, {len(fallos_nat)} con error", t0)
-        tr.fin("err", "Puerto 3074 abierto parcialmente", "; ".join(fallos_nat[:2]))
-        evento("err", f"Open NAT 3074 parcial: {fallos_nat[0]}")
-    else:
-        tr.paso("run", "done", f"Firewall y router: {len(hechos)} reglas OK", t0)
-        tr.fin("ok", "Puerto 3074 abierto", "Firewall de Windows y router (UPnP), TCP + UDP.")
-        evento("ok", "Open NAT 3074 aplicado (firewall + UPnP)")
-
-
 def t_recargar(tr: Trabajo, simular: bool) -> None:
     t0 = time.monotonic()
     tr.paso("check", "run")
@@ -818,6 +720,166 @@ def t_recargar(tr: Trabajo, simular: bool) -> None:
         telegram(f"⚠️ <b>{NOMBRE}</b>: el PC no se ha apagado tras la recarga.")
 
 
+# --- bot de Discord -----------------------------------------------------------
+# Antes el bot tenia su propio panel (otro Flask, otro servicio, otra RAM).
+# Ahora todo lo suyo vive aqui: estado, arrancar/parar/reiniciar, actualizar,
+# logs, editor de su .env y de la memoria de la IA.
+
+BOT_DIR = Path(os.environ.get("BOT_DIR", "/home/renox/discord-bot"))
+BOT_SERVICIO = os.environ.get("BOT_SERVICIO", "discordbot")
+BOT_ENVS = {"env": BOT_DIR / ".env", "avisos": BOT_DIR / ".env.avisos"}
+BOT_IA = {"contexto": BOT_DIR / "data" / "ai_context.json",
+          "saved": BOT_DIR / "data" / "ai_saved.json"}
+BOT_IA_ESTADO = BOT_DIR / "data" / "ai_state.json"
+ESPERA_BOT_UPDATE = 1800   # s maximos para startup.sh (lleva un apt upgrade)
+# Claves del .env que no se ensenan nunca en el navegador.
+SECRETO = re.compile(r"TOKEN|KEY|SECRET|PASSWORD|HASH|CLAVE", re.I)
+# Comandos con sudo: DEBEN coincidir con /etc/sudoers.d/recarga-web.
+BOT_ORDENES = {
+    "start": ["sudo", "-n", "/usr/bin/systemctl", "start", BOT_SERVICIO],
+    "stop": ["sudo", "-n", "/usr/bin/systemctl", "stop", BOT_SERVICIO],
+    "restart": ["sudo", "-n", "/usr/bin/systemctl", "restart", BOT_SERVICIO],
+}
+_bot_cache = {"t": 0.0, "d": None}
+
+
+def bot_estado(fresco: bool = False) -> dict:
+    """Estado del servicio del bot. Se cachea 10 s: el panel pregunta cada
+    poco y systemctl no es gratis en una Zero 2 W."""
+    if not fresco and _bot_cache["d"] and time.monotonic() - _bot_cache["t"] < 10:
+        return _bot_cache["d"]
+    d = {"estado": "desconocido", "sub": "", "pid": None, "uptime_s": None,
+         "ram_mb": None, "reinicios": None, "version": None, "ia": None}
+    try:
+        r = subprocess.run(["systemctl", "show", BOT_SERVICIO, "-p", "ActiveState", "-p", "SubState",
+                            "-p", "MainPID", "-p", "ActiveEnterTimestampMonotonic", "-p", "NRestarts"],
+                           capture_output=True, text=True, timeout=10)
+        v = dict(l.split("=", 1) for l in r.stdout.splitlines() if "=" in l)
+        d["estado"] = v.get("ActiveState", "desconocido")
+        d["sub"] = v.get("SubState", "")
+        pid = int(v.get("MainPID") or 0)
+        d["reinicios"] = int(v.get("NRestarts") or 0)
+        if pid:
+            d["pid"] = pid
+            inicio = int(v.get("ActiveEnterTimestampMonotonic") or 0)
+            if inicio:   # systemd usa CLOCK_MONOTONIC, igual que time.monotonic() en Linux
+                d["uptime_s"] = max(0, int(time.monotonic() - inicio / 1e6))
+            for linea in open(f"/proc/{pid}/status"):
+                if linea.startswith("VmRSS:"):
+                    d["ram_mb"] = round(int(linea.split()[1]) / 1024)
+    except (OSError, ValueError, subprocess.SubprocessError):
+        pass
+    try:
+        d["version"] = (BOT_DIR / "VERSION").read_text(encoding="utf-8").strip()
+    except OSError:
+        pass
+    d["ia"] = bool(leer_json(BOT_IA_ESTADO, {"enabled": True}).get("enabled", True))
+    _bot_cache.update(t=time.monotonic(), d=d)
+    return d
+
+
+def env_leer(ruta: Path) -> list[dict]:
+    """El .env como lista de lineas: comentarios tal cual y variables con su
+    valor, salvo los secretos (solo se dice si estan puestos)."""
+    filas = []
+    try:
+        lineas = ruta.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return filas
+    for linea in lineas:
+        s = linea.strip()
+        if s and not s.startswith("#") and "=" in s:
+            k, _, v = s.partition("=")
+            k = k.strip()
+            if SECRETO.search(k):
+                filas.append({"k": k, "v": "", "secreto": True, "puesto": bool(v.strip())})
+            else:
+                filas.append({"k": k, "v": v})
+        else:
+            filas.append({"c": linea})
+    return filas
+
+
+def env_escribir(ruta: Path, cambios: dict) -> int:
+    """Aplica {clave: valor} conservando comentarios y orden. Un secreto vacio
+    se deja como estaba. Devuelve cuantas variables han cambiado."""
+    lineas = ruta.read_text(encoding="utf-8").splitlines()
+    nuevas, n = [], 0
+    for linea in lineas:
+        s = linea.strip()
+        if s and not s.startswith("#") and "=" in s:
+            k, _, viejo = s.partition("=")
+            k = k.strip()
+            if k in cambios:
+                nuevo = str(cambios[k]).replace("\n", " ").strip()
+                if not (SECRETO.search(k) and nuevo == "") and nuevo != viejo:
+                    nuevas.append(f"{k}={nuevo}")
+                    n += 1
+                    continue
+        nuevas.append(linea)
+    tmp = ruta.with_suffix(ruta.suffix + ".tmp")
+    tmp.write_text("\n".join(nuevas) + "\n", encoding="utf-8")
+    os.chmod(tmp, 0o600)
+    tmp.replace(ruta)
+    return n
+
+
+def t_bot_actualizar(tr: Trabajo) -> None:
+    """startup.sh del bot: apt, git reset al ultimo main, Python, pip y reinicio."""
+    t0 = time.monotonic()
+    antes = bot_estado(fresco=True).get("version")
+    tr.paso("sync", "run", "apt, GitHub, Python y dependencias")
+    proc = subprocess.Popen(["sudo", "-n", "/bin/bash", str(BOT_DIR / "startup.sh")],
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                            text=True, encoding="utf-8", errors="replace")
+    fallo_git = False
+    try:
+        for linea in proc.stdout:
+            linea = linea.rstrip()
+            if not linea:
+                continue
+            if linea.startswith("==>"):
+                tr.log(linea)
+                tr.paso("sync", "run", linea[4:].strip()[:120])
+            elif "!!!" in linea or "fallo" in linea.lower() or linea.lstrip().startswith(("Version:", "(")):
+                tr.log(linea.strip())
+                fallo_git = fallo_git or "SINCRONIZACION HA FALLADO" in linea
+            if time.monotonic() - t0 > ESPERA_BOT_UPDATE:
+                proc.kill()
+                break
+        codigo = proc.wait(timeout=60)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        codigo = -1
+    if codigo != 0:
+        tr.paso("sync", "fail", f"startup.sh ha salido con {codigo}", t0)
+        tr.paso("check", "skip", "")
+        tr.fin("err", "No se ha podido actualizar el bot", "Mirar los logs del bot.")
+        evento("err", f"Actualización del bot fallida (código {codigo})")
+        return
+    tr.paso("sync", "done", "Hecho", t0)
+    tr.paso("check", "run", "Esperando a que el bot arranque")
+    t1 = time.monotonic()
+    d = bot_estado(fresco=True)
+    while d["estado"] != "active" and time.monotonic() - t1 < 60:
+        time.sleep(3)
+        d = bot_estado(fresco=True)
+    if d["estado"] != "active":
+        tr.paso("check", "fail", f"Servicio {d['estado']}", t1)
+        tr.fin("err", "El bot no ha arrancado", "Mirar los logs del bot.")
+        evento("err", "El bot no ha arrancado tras actualizar")
+    elif fallo_git:
+        tr.paso("check", "fail", f"Sigue en {d['version']}", t1)
+        tr.fin("err", "El bot arranca, pero con el código de antes",
+               "La sincronización con GitHub ha fallado: mirar permisos del repo.")
+        evento("err", "Bot reiniciado sin actualizar: falló la sincronización con GitHub")
+    else:
+        tr.paso("check", "done", f"Versión {d['version']}", t1)
+        cambio = f"{antes} → {d['version']}" if antes != d["version"] else f"ya estaba en {d['version']}"
+        tr.fin("ok", "Bot actualizado", cambio)
+        evento("ok", f"Bot actualizado ({cambio})")
+
+
 PASOS_RECARGA = [
     ("check", "Comprobar el PC", "Conexión SSH"),
     ("wol", "Encender el PC", "Wake on LAN"),
@@ -834,9 +896,6 @@ ACCIONES = {
     "apagar": lambda: (Trabajo("apagar", "Apagado del PC", [
         ("orden", "Orden de apagado", "shutdown por SSH"),
         ("espera", "Confirmación", "Hasta que deje de responder")]), t_apagar),
-    "limpiar": lambda: (Trabajo("limpiar", "Limpieza RNX · /todo", [
-        ("check", "Lanzamiento", "Tarea programada en la sesión del usuario"),
-        ("run", "Ejecución", "Backup, limpieza completa, shadercache, ratón")]), t_limpiar),
     "reiniciar": lambda: (Trabajo("reiniciar", "Reinicio del PC", [
         ("orden", "Orden de reinicio", "shutdown /r por SSH"),
         ("baja", "Apagado", "Hasta que deje de responder"),
@@ -844,8 +903,9 @@ ACCIONES = {
     "suspender": lambda: (Trabajo("suspender", "Suspensión del PC", [
         ("orden", "Orden de suspensión", "SetSuspendState por SSH"),
         ("baja", "Confirmación", "Hasta que deje de responder")]), t_suspender),
-    "nat": lambda: (Trabajo("nat", "Open NAT · puerto 3074", [
-        ("run", "RNX Port Forwarder", "Firewall de Windows + router UPnP")]), t_nat),
+    "bot_actualizar": lambda: (Trabajo("bot_actualizar", "Actualización del bot de Discord", [
+        ("sync", "startup.sh", "apt, GitHub, Python y dependencias"),
+        ("check", "Arranque", "Hasta que el servicio vuelva a estar activo")]), t_bot_actualizar),
 }
 
 
@@ -926,6 +986,7 @@ def api_estado():
         eventos=eventos[:30],
         trabajo=trabajo_actual.d if trabajo_actual else None,
         cada_pc=CADA_METRICAS,
+        bot=bot_estado(),
     )
 
 
@@ -984,6 +1045,100 @@ def api_sesion(accion):
     if codigo != 0:
         return jsonify(error="Sin respuesta del PC"), 502
     evento("info", "Sesión bloqueada desde el panel" if accion == "bloquear" else "Sesión cerrada desde el panel")
+    return jsonify(ok=True)
+
+
+@app.post("/api/bot/<orden>")
+@requiere_login
+@requiere_csrf
+def api_bot(orden):
+    if orden not in BOT_ORDENES:
+        return jsonify(error="Orden desconocida"), 404
+    if trabajo_actual and trabajo_actual.d["activo"] and trabajo_actual.d["tipo"] == "bot_actualizar":
+        return jsonify(error="El bot se está actualizando: esperar a que termine"), 409
+    r = subprocess.run(BOT_ORDENES[orden], capture_output=True, text=True, timeout=60)
+    if r.returncode != 0:
+        return jsonify(error=(r.stderr or "La orden ha fallado").strip()[:200]), 500
+    nombres = {"start": "arrancado", "stop": "parado", "restart": "reiniciado"}
+    evento("info", f"Bot {nombres[orden]} desde el panel")
+    time.sleep(1.5)
+    return jsonify(ok=True, bot=bot_estado(fresco=True))
+
+
+@app.get("/api/bot/logs")
+@requiere_login
+def api_bot_logs():
+    n = min(max(int(request.args.get("n", "150") or 150), 20), 1000)
+    # renox esta en el grupo adm: puede leer el diario sin sudo
+    try:
+        r = subprocess.run(["journalctl", "-u", BOT_SERVICIO, "-n", str(n), "--no-pager", "-o", "short"],
+                           capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.SubprocessError) as exc:
+        return jsonify(lineas=[f"No se pueden leer los logs: {exc}"])
+    return jsonify(lineas=(r.stdout or r.stderr or "").splitlines()[-n:])
+
+
+@app.get("/api/bot/config/<cual>")
+@requiere_login
+def api_bot_config(cual):
+    if cual not in BOT_ENVS:
+        return jsonify(error="Fichero desconocido"), 404
+    if not BOT_ENVS[cual].exists():
+        return jsonify(error=f"No existe {BOT_ENVS[cual].name}"), 404
+    return jsonify(fichero=BOT_ENVS[cual].name, filas=env_leer(BOT_ENVS[cual]))
+
+
+@app.post("/api/bot/config/<cual>")
+@requiere_login
+@requiere_csrf
+def api_bot_config_guardar(cual):
+    if cual not in BOT_ENVS or not BOT_ENVS[cual].exists():
+        return jsonify(error="Fichero desconocido"), 404
+    cambios = (request.get_json(silent=True) or {}).get("cambios") or {}
+    if not isinstance(cambios, dict):
+        return jsonify(error="Formato no válido"), 400
+    with _io:
+        n = env_escribir(BOT_ENVS[cual], cambios)
+    if n:
+        evento("info", f"{BOT_ENVS[cual].name} del bot: {n} variable{'s' if n > 1 else ''} cambiada{'s' if n > 1 else ''}")
+    return jsonify(ok=True, cambiadas=n)
+
+
+@app.get("/api/bot/ia")
+@requiere_login
+def api_bot_ia():
+    def texto(ruta):
+        try:
+            return ruta.read_text(encoding="utf-8")
+        except OSError:
+            return '{\n  "servidores": []\n}'
+    return jsonify(enabled=bot_estado()["ia"], **{k: texto(r) for k, r in BOT_IA.items()})
+
+
+@app.post("/api/bot/ia")
+@requiere_login
+@requiere_csrf
+def api_bot_ia_guardar():
+    datos = request.get_json(silent=True) or {}
+    if "enabled" in datos:
+        escribir_json(BOT_IA_ESTADO, {"enabled": bool(datos["enabled"])})
+        _bot_cache["t"] = 0
+        evento("info", "Chat de IA del bot " + ("activado" if datos["enabled"] else "desactivado"))
+        return jsonify(ok=True)
+    nuevos = {}
+    for k in BOT_IA:
+        if k in datos:
+            try:
+                json.loads(datos[k])
+            except (TypeError, ValueError) as exc:
+                return jsonify(error=f"JSON no válido en {BOT_IA[k].name}: {exc}"), 400
+            nuevos[k] = datos[k]
+    for k, txt in nuevos.items():
+        tmp = BOT_IA[k].with_suffix(".tmp")
+        tmp.write_text(txt, encoding="utf-8")
+        tmp.replace(BOT_IA[k])
+    if nuevos:
+        evento("info", "Memoria de la IA del bot editada desde el panel")
     return jsonify(ok=True)
 
 

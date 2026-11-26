@@ -12,9 +12,13 @@ USUARIO="${SUDO_USER:-renox}"
 PANEL="$(cd "$(dirname "$0")" && pwd)"
 PUERTO=6678
 
-echo "== 1/5 · Entorno de Python =="
-[ -x "$PANEL/venv/bin/python" ] || sudo -u "$USUARIO" python3 -m venv "$PANEL/venv"
-sudo -u "$USUARIO" "$PANEL/venv/bin/pip" install -q -r "$PANEL/requirements.txt"
+echo "== 1/5 · Entorno de Python (3.15 con uv) =="
+# uv baja un Python ya compilado para aarch64: nada de compilar en la Zero 2 W.
+UV="/home/$USUARIO/.local/bin/uv"
+[ -x "$UV" ] || sudo -u "$USUARIO" sh -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'
+sudo -u "$USUARIO" "$UV" python install 3.15
+[ -x "$PANEL/venv/bin/python" ] || sudo -u "$USUARIO" "$UV" venv --seed -p 3.15 "$PANEL/venv"
+sudo -u "$USUARIO" "$PANEL/venv/bin/pip" install -q --upgrade --upgrade-strategy eager -r "$PANEL/requirements.txt"
 
 echo "== 2/5 · Clave SSH para entrar al PC =="
 CLAVE="/home/$USUARIO/.ssh/id_ed25519_pc"
@@ -35,13 +39,13 @@ else
 fi
 chmod 600 "$PANEL/.env"
 
-echo "== 4/5 · Permisos de sudo (solo estos dos comandos) =="
-# reboot: boton "Reiniciar Pi" del panel. restart: panel/actualizar.sh
-cat > /etc/sudoers.d/recarga-web <<EOF
-$USUARIO ALL=(root) NOPASSWD: /usr/bin/systemctl reboot, /usr/bin/systemctl restart recarga-web
-EOF
-chmod 440 /etc/sudoers.d/recarga-web
-visudo -cf /etc/sudoers.d/recarga-web
+echo "== 4/5 · Permisos de sudo (solo los comandos exactos del panel) =="
+# Ver panel/recarga-web.sudoers: reiniciar la Pi, el panel y manejar el bot.
+sed "s|^renox |$USUARIO |" "$PANEL/recarga-web.sudoers" > /etc/sudoers.d/recarga-web.nuevo
+chmod 440 /etc/sudoers.d/recarga-web.nuevo
+visudo -cf /etc/sudoers.d/recarga-web.nuevo && mv /etc/sudoers.d/recarga-web.nuevo /etc/sudoers.d/recarga-web
+# El bot tuvo su propio panel con su propio sudoers: ya no hace falta.
+rm -f /etc/sudoers.d/discordpanel
 
 echo "== 5/5 · Servicio =="
 sed "s|/home/renox/ZeroDesk/panel|$PANEL|g; s|^User=.*|User=$USUARIO|" "$PANEL/recarga-web.service" > /etc/systemd/system/recarga-web.service

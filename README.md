@@ -1,10 +1,10 @@
 # 🖥️ ZeroDesk
 
-![Python](https://img.shields.io/badge/Python-3.13-3776AB?style=flat-square&logo=python&logoColor=white) ![Flask](https://img.shields.io/badge/Flask-3.1-000000?style=flat-square&logo=flask&logoColor=white) ![SQLite](https://img.shields.io/badge/SQLite-telemetry-003B57?style=flat-square&logo=sqlite&logoColor=white) ![Playwright](https://img.shields.io/badge/Playwright-headless%20Chromium-2EAD33?style=flat-square&logo=playwright&logoColor=white) ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-5391FE?style=flat-square&logo=powershell&logoColor=white) ![OpenSSH](https://img.shields.io/badge/OpenSSH-key%20auth-000000?style=flat-square&logo=openssh&logoColor=white) ![Raspberry Pi](https://img.shields.io/badge/Raspberry%20Pi-Zero%202%20W-A22846?style=flat-square&logo=raspberrypi&logoColor=white) ![Windows](https://img.shields.io/badge/Windows-11%20(AtlasOS)-0078D4?style=flat-square&logo=windows&logoColor=white) ![Tailscale](https://img.shields.io/badge/Tailscale-remote%20access-242424?style=flat-square&logo=tailscale&logoColor=white) ![Telegram](https://img.shields.io/badge/Telegram-alerts-26A5E4?style=flat-square&logo=telegram&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.15-3776AB?style=flat-square&logo=python&logoColor=white) ![Flask](https://img.shields.io/badge/Flask-3.1-000000?style=flat-square&logo=flask&logoColor=white) ![SQLite](https://img.shields.io/badge/SQLite-telemetry-003B57?style=flat-square&logo=sqlite&logoColor=white) ![Playwright](https://img.shields.io/badge/Playwright-headless%20Chromium-2EAD33?style=flat-square&logo=playwright&logoColor=white) ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-5391FE?style=flat-square&logo=powershell&logoColor=white) ![OpenSSH](https://img.shields.io/badge/OpenSSH-key%20auth-000000?style=flat-square&logo=openssh&logoColor=white) ![Raspberry Pi](https://img.shields.io/badge/Raspberry%20Pi-Zero%202%20W-A22846?style=flat-square&logo=raspberrypi&logoColor=white) ![Windows](https://img.shields.io/badge/Windows-11%20(AtlasOS)-0078D4?style=flat-square&logo=windows&logoColor=white) ![Tailscale](https://img.shields.io/badge/Tailscale-remote%20access-242424?style=flat-square&logo=tailscale&logoColor=white) ![Telegram](https://img.shields.io/badge/Telegram-alerts-26A5E4?style=flat-square&logo=telegram&logoColor=white)
 
-> **Your gaming PC, from anywhere, without leaving it on.** A tiny web panel running on a **Raspberry Pi Zero 2 W** that wakes the PC with **Wake on LAN**, monitors it, runs your scripts on it over **SSH** and turns it off again — all from your phone, through **Tailscale**. 🚀
+> **Your gaming PC and your Discord bot, from anywhere.** A tiny web panel running on a **Raspberry Pi Zero 2 W** that wakes the PC with **Wake on LAN**, monitors it, runs your scripts on it over **SSH** and turns it off again — and manages the [RGL Discord BOT](https://github.com/Ren0X1/RGL-Discord-BOT) that lives on the same Pi. All from your phone, through **Tailscale**. 🚀
 
-The Pi is always on and sips power; the PC only runs when there is something to do. From the panel you see CPU, RAM, disk and GPU at a glance, power the PC on/off/restart/sleep, lock it, keep it from locking, launch maintenance scripts, and even top up a prepaid wallet that needs a real browser — which the Pi (415 MB of RAM) could never run itself, so it borrows the PC for 30 seconds. ⚡
+The Pi is always on and sips power; the PC only runs when there is something to do. From the panel you see CPU, RAM, disk and GPU at a glance, power the PC on/off/restart/sleep, lock it, keep it from locking, restart, update and configure the Discord bot, and even top up a prepaid wallet that needs a real browser — which the Pi (415 MB of RAM) could never run itself, so it borrows the PC for 30 seconds. ⚡
 
 ---
 
@@ -12,15 +12,15 @@ The Pi is always on and sips power; the PC only runs when there is something to 
 
 | Area | Technology |
 |------|------------|
-| Panel backend | Python 3.13 · Flask 3 · waitress |
-| Panel frontend | Vanilla HTML + CSS + JS — inline SVG icons and charts, zero dependencies · *Terminal* theme (Public Sans + JetBrains Mono) |
+| Panel backend | Python 3.15 (via [uv](https://docs.astral.sh/uv/)) · Flask 3 · waitress |
+| Panel frontend | Vanilla HTML + CSS + JS — inline SVG icons and charts, zero dependencies · *Bento* theme, dark by default with a light mode (Inter + JetBrains Mono) |
 | Telemetry | SQLite (`telemetria.db`), 30 days of history, bucketed on the fly per range |
 | PC control | OpenSSH Server on Windows (key auth only) + PowerShell 5.1 scripts |
 | Power on | Wake on LAN magic packet (UDP broadcast from the Pi) |
 | Desktop actions | Windows Task Scheduler tasks that run inside the user session |
 | Browser automation | Playwright + headless Chromium (wallet top-up) |
 | Alerts | Telegram Bot API |
-| Services | systemd (`recarga-web`) — starts with the Pi, restarts itself |
+| Services | systemd (`recarga-web`) — starts with the Pi, restarts itself; also drives the bot's `discordbot` service |
 | Remote access | Tailscale (WireGuard VPN, no ports opened) |
 | Hardware | Raspberry Pi Zero 2 W · Windows 11 PC (AtlasOS) |
 | CI/CD | GitHub Actions — automatic versioning, tag and release on every push |
@@ -30,23 +30,22 @@ The Pi is always on and sips power; the PC only runs when there is something to 
 ## ✨ What the panel does
 
 ### 🎨 The screen
-A dense dark *Terminal* theme: figures in a monospace so they line up, and every selection (section, range, metric) marked by a 1 px line in RNX teal. On a phone the side rail becomes a bottom bar.
+A *Bento* grid of rounded cards — **dark by default**, with a sun button for light mode (remembered per browser). Figures in a monospace so they line up, one teal accent for what you can touch. On a phone the cards stack and the navigation becomes a bar at the bottom, under your thumb.
 
 ```
-┌ RNX Panel ─────────────────────────────────────────── ● Todo operativo · 13:27 ┐
-│ ⌂ │ RNXPC                              [ ⏻ Apagar ] │ Control                  │
-│ ‹›│ ● En línea · encendido hace 3 h 20 min           │ Encender Apagar Reiniciar│
-│ ▣ │ Todo en orden.                                   │ Suspender Bloquear Salir │
-│ ▥ │ Este navegador ─VPN─ Raspberry Pi ─WoL·SSH─ PC   │ Anti-bloqueo        [○ ] │
-│ ☰ │ CPU 18 %  RAM 41 %  Disco 56 %  GPU 9 %  47 °C   │                          │
-│   ├──────────────────────┬───────────────────────────┴──────────────────────────┤
-│   │ Scripts              │ Terminal (live steps or the operation log)           │
-│   ├──────────────────────┴──────────────────────────────────────────────────────┤
-│   │ Rendimiento  [PC CPU|PC RAM|GPU °C|Pi CPU|Pi RAM|Pi °C]       1h 6h 24h 7d 30d│
-│   │ one large chart with scale, times and hover tooltip                         │
-│   ├─────────────────────────────────────────────────────────────────────────────┤
-│   │ Sistema: PC info · services and latency · Raspberry Pi                      │
-└───┴─────────────────────────────────────────────────────────────────────────────┘
+┌ ZD ZeroDesk ────────────────────────────── ● Todo operativo · 13:27  ☀  ⇥ ┐
+│ [Inicio] Bot  Terminal  Gráficas  Sistema                                │
+│ ┌ PC de juegos ─────────────────────────────────────────── [⏻ Apagar PC] ┐│
+│ │ RNXPC  ● En línea · encendido hace 3 h 20 min                          ││
+│ │ [CPU 18%] [RAM 41%] [Disco 56%] [GPU 9%] [47 °C]                       ││
+│ └────────────────────────────────────────────────────────────────────────┘│
+│ ┌ Control del PC ─┐ ┌ RGL Bot ── Activo ┐ ┌ Scripts ─────────────────┐   │
+│ │ 6 buttons       │ │ v2.0.0 · 2 d · 61MB│ │ Monedero Casa Ortega     │   │
+│ │ Anti-bloqueo ○  │ │ Chat de IA ●       │ │ [Simular] [Recargar 10€] │   │
+│ └─────────────────┘ └────────────────────┘ └──────────────────────────┘   │
+│ ┌ Terminal ─────────────────────────────┐ ┌ Raspberry Pi ─────────────┐   │
+│ Rendimiento · Herramientas del bot (logs, .env, memoria IA) · Sistema    │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 🩺 Monitor
@@ -65,11 +64,19 @@ A dense dark *Terminal* theme: figures in a monospace so they line up, and every
 | 🌙 **Sleep** | `SetSuspendState` — wakes up again with *Power on* |
 | 🔒 **Lock** / 🚪 **Sign out** | Scheduled tasks that run inside the desktop session |
 | 🖱️ **Anti-lock** | Nudges the mouse 1 px every 5 min so Windows never locks (off by default) |
-| 🍓 **Reboot Pi** | `systemctl reboot` through a single-command sudoers rule; the page reconnects by itself |
+| 🍓 **Reboot Pi** | `systemctl reboot` through an exact-command sudoers rule; the page reconnects by itself |
+
+### 🤖 Discord bot
+The [RGL Discord BOT](https://github.com/Ren0X1/RGL-Discord-BOT) runs on the same Pi. It used to have its own web panel (another Flask app, another service, more RAM); everything it did now lives here:
+
+- 🟢 **Status** — running / stopped / crashed, version, uptime and memory of the `discordbot` service.
+- 🔁 **Restart / stop / start**, and **Update**: runs the bot's `startup.sh` (apt, `git reset` to the latest `main`, Python patch, dependencies) as a job, streamed into the terminal, and checks the version that actually came up.
+- 💬 **AI chat switch** — on/off instantly (`data/ai_state.json`).
+- 📜 **Logs** — the last lines of its journal, errors in red.
+- ✏️ **Config** — its `.env` and `.env.avisos` as a form, comments and order kept; tokens and keys are never sent to the browser (empty = unchanged). After saving it offers to restart the bot.
+- 🧠 **AI memory** — edit the manual context and the learned memory as JSON (validated before saving), or wipe the learned memory in one click.
 
 ### 🧪 Scripts
-- 🧹 **RNX Cache Cleaner `/todo`** — from [CS2-Cache-Cleaner](https://github.com/Ren0X1/CS2-Cache-Cleaner), launched elevated inside the user session (it restarts Explorer and imports `HKCU` settings, so it can't run from SSH). Its log is streamed into the panel's terminal.
-- 🌐 **Open NAT 3074** — from [T6-Open-Nat-Script](https://github.com/Ren0X1/T6-Open-Nat-Script): opens port 3074 TCP/UDP in the Windows Firewall and on the router via UPnP.
 - 💳 **Wallet top-up** — logs into casaortega.com, fills the Redsys gateway with the Pluxee card and waits for the bank. If the PC was off, it is woken up for the job and shut down afterwards; if it was on, it is left alone.
 
 ### 🖥️ Terminal
@@ -84,8 +91,9 @@ flowchart LR
     phone["📱 Phone / browser"] -- Tailscale --> pi["🍓 Raspberry Pi Zero 2 W<br/>Flask panel :6678"]
     pi -- "Wake on LAN" --> pc["🖥️ Windows PC"]
     pi -- "SSH (key)" --> pc
-    pc -- "scheduled tasks" --> desk["👤 User session<br/>jiggler · cleaner · lock"]
+    pc -- "scheduled tasks" --> desk["👤 User session<br/>jiggler · lock"]
     pc -- "Playwright" --> shop["🛒 casaortega.com → Redsys"]
+    pi -- "systemd" --> bot["🤖 Discord bot<br/>discordbot.service"]
     pi -- alerts --> tg["✈️ Telegram"]
     pc -- alerts --> tg
 ```
@@ -101,13 +109,13 @@ ZeroDesk/
 │   ├── templates/ static/  #    dashboard UI (panel, login) and its single stylesheet
 │   ├── instalar.sh         #    one-shot installer (venv, SSH key, sudoers, systemd)
 │   ├── cambiar_password.py #    set / change the panel password
+│   ├── recarga-web.sudoers #    the exact commands the panel may run with sudo
 │   └── recarga-web.service
 ├── pc/                     # 🖥️ runs on the Windows PC (called by the Pi over SSH)
 │   ├── preparar_pc.ps1     #    one-shot setup: OpenSSH, firewall, WoL, scheduled tasks
 │   ├── estado_pc.ps1       #    CPU / RAM / disk / GPU / session → JSON
 │   ├── jiggler.ps1 · mantener_despierto.ps1 · lanzar_jiggler.vbs
-│   ├── sesion.ps1          #    lock / sign out
-│   └── limpiador.ps1       #    launches the cleaner task and tails its log
+│   └── sesion.ps1          #    lock / sign out
 ├── recarga.py              # 💳 wallet top-up (Playwright)
 ├── notificar.py · saldo.py · sacar_chat_id.py · recargar.bat
 └── .github/workflows/release.yml
@@ -165,7 +173,7 @@ On the PC nothing needs restarting: the Pi calls the scripts in `pc/` and `recar
 - 🌐 The panel is meant to be reached **only through Tailscale** — nothing is exposed to the internet.
 - 🧂 Panel password stored as a salted hash; **5 wrong attempts → 15 min lockout** + Telegram alert.
 - 🛡️ Session cookie `HttpOnly` + `SameSite=Strict`, and a CSRF token on every action.
-- 🧯 The Pi's sudo rights are limited to exactly two commands: `systemctl reboot` and `systemctl restart recarga-web`.
+- 🧯 The Pi's sudo rights are limited to exact commands (`panel/recarga-web.sudoers`): reboot, restart the panel, and start / stop / restart / update the bot.
 - 💳 Card data lives only in the PC's `.env` (git-ignored). The top-up is **once a day max** and **never retries by itself**: a blind retry could charge twice.
 
 ---
@@ -173,7 +181,7 @@ On the PC nothing needs restarting: the Pi calls the scripts in `pc/` and `recar
 ## 🧯 Troubleshooting
 
 - **Power on does nothing** — Wake on LAN is off in the BIOS, *ErP* is on, or the PC is on Wi-Fi. The link LED on the NIC should stay lit while the PC is off.
-- **Lock / anti-lock / cleaner greyed out** — they need someone signed in on the PC; after a Wake on LAN boot the PC sits at the login screen.
+- **Lock / anti-lock greyed out** — they need someone signed in on the PC; after a Wake on LAN boot the PC sits at the login screen.
 - **No GPU temperature** — it comes from `nvidia-smi`; Windows' ACPI thermal zone reports a fixed value and is ignored on purpose.
 - **Top-up timed out** — the bank *may* have charged anyway: check the wallet before trying again.
 

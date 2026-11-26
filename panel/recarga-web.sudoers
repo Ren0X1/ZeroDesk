@@ -1,0 +1,6 @@
+# Permisos de ZeroDesk (usuario renox) SIN contraseña, pero SOLO estos comandos
+# exactos. Lo instala panel/instalar.sh en /etc/sudoers.d/recarga-web (modo 440).
+#   - reiniciar la Pi y el propio panel
+#   - arrancar, parar, reiniciar y actualizar el bot de Discord
+renox ALL=(root) NOPASSWD: /usr/bin/systemctl reboot, /usr/bin/systemctl restart recarga-web
+renox ALL=(root) NOPASSWD: /usr/bin/systemctl start discordbot, /usr/bin/systemctl stop discordbot, /usr/bin/systemctl restart discordbot, /bin/bash /home/renox/discord-bot/startup.sh

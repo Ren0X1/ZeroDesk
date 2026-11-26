@@ -14,9 +14,7 @@ param(
     [string]$PiIP      = '192.168.100.75',   # IP de la Pi en la red de casa
     [string]$PiTsIP    = '100.124.145.22',   # IP de la Pi en Tailscale
     [string]$ClavePi   = 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPHfnA67qhU3xSUGKH2BTJ5BPw4eoJFG5C2dIIXL8R4L pi-recarga',
-    [string]$NIC       = 'Ethernet',
-    # El limpiador RNX (repo CS2-Cache-Cleaner). Si no existe, no se crea su tarea.
-    [string]$Limpiador = "$env:USERPROFILE\Documents\Git\CS2-Cache-Cleaner\RNX_Cache_Cleaner_v4.bat"
+    [string]$NIC       = 'Ethernet'
 )
 $ErrorActionPreference = 'Stop'
 $PI_IP = $PiIP; $PI_TS_IP = $PiTsIP; $CLAVE_PI = $ClavePi
@@ -82,7 +80,7 @@ Set-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power' 
 Write-Host "   tarjeta lista. MAC: $((Get-NetAdapter -Name $NIC).MacAddress)"
 
 Write-Host '== 5/6 · Tareas programadas =='
-# El raton y el limpiador solo funcionan dentro de la sesion del usuario, no en
+# El raton y la sesion solo se pueden tocar desde la sesion del usuario, no desde
 # la de SSH: la Pi las dispara y corren en el escritorio.
 $usuario = "$env:USERDOMAIN\$env:USERNAME"
 $vbs = Join-Path $PSScriptRoot 'lanzar_jiggler.vbs'
@@ -98,15 +96,8 @@ Register-ScheduledTask -TaskName 'RNX Bloquear' -Force -Description 'Bloquea la 
 Register-ScheduledTask -TaskName 'RNX Cerrar sesion' -Force -Description 'Cierra la sesion (Panel remoto RNX PC)' `
     -Action (New-ScheduledTaskAction -Execute 'shutdown.exe' -Argument '/l') -Principal $sesion -Settings $ajustes | Out-Null
 Write-Host '   tareas "RNX Bloquear" y "RNX Cerrar sesion"'
-if ($Limpiador -and (Test-Path $Limpiador)) {
-    Register-ScheduledTask -TaskName 'RNX Cache Cleaner' -Force -Description 'RNX Cache Cleaner /todo (Panel remoto RNX PC)' `
-        -Action (New-ScheduledTaskAction -Execute 'cmd.exe' -Argument ('/c ""' + $Limpiador + '" /todo"') -WorkingDirectory (Split-Path $Limpiador)) `
-        -Principal (New-ScheduledTaskPrincipal -UserId $usuario -LogonType Interactive -RunLevel Highest) `
-        -Settings (New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 1) -MultipleInstances IgnoreNew) | Out-Null
-    Write-Host '   tarea "RNX Cache Cleaner" (con privilegios de administrador)'
-} else {
-    Write-Host '   limpiador no encontrado: tarea "RNX Cache Cleaner" omitida'
-}
+# El limpiador RNX ya no se lanza desde el panel: si quedo su tarea de antes, fuera.
+Unregister-ScheduledTask -TaskName 'RNX Cache Cleaner' -Confirm:$false -ErrorAction SilentlyContinue
 
 Write-Host '== 6/6 · Comprobacion =='
 Get-Service sshd | Format-Table Name, Status, StartType -AutoSize

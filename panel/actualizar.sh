@@ -6,7 +6,8 @@
 set -euo pipefail
 PANEL="$(cd "$(dirname "$0")" && pwd)"
 git -C "$PANEL/.." pull --ff-only
-"$PANEL/venv/bin/pip" install -q -r "$PANEL/requirements.txt"
+[ -x "$HOME/.local/bin/uv" ] && "$HOME/.local/bin/uv" python upgrade 3.15 || true
+"$PANEL/venv/bin/pip" install -q --upgrade --upgrade-strategy eager -r "$PANEL/requirements.txt"
 sudo systemctl restart recarga-web
 sleep 3
 systemctl is-active recarga-web
