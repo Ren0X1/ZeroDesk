@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.0.f1]
+
+### 🐛 Fixed
+- ✏️ Bot config editor: a key only counts as a secret when it **ends** in `TOKEN`, `KEY`, `SECRET`, `PASSWORD`… `AI_MAX_TOKENS` was being hidden and could not be edited.
+
+---
+
 ## [2.0.0.f0]
 
 ### 💥 Changed

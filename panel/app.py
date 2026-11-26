@@ -733,7 +733,8 @@ BOT_IA = {"contexto": BOT_DIR / "data" / "ai_context.json",
 BOT_IA_ESTADO = BOT_DIR / "data" / "ai_state.json"
 ESPERA_BOT_UPDATE = 1800   # s maximos para startup.sh (lleva un apt upgrade)
 # Claves del .env que no se ensenan nunca en el navegador.
-SECRETO = re.compile(r"TOKEN|KEY|SECRET|PASSWORD|HASH|CLAVE", re.I)
+# Solo si la clave TERMINA asi: AI_MAX_TOKENS no es un secreto, AI_API_KEY si.
+SECRETO = re.compile(r"(^|_)(TOKEN|KEY|SECRET|PASSWORD|HASH|CLAVE)$", re.I)
 # Comandos con sudo: DEBEN coincidir con /etc/sudoers.d/recarga-web.
 BOT_ORDENES = {
     "start": ["sudo", "-n", "/usr/bin/systemctl", "start", BOT_SERVICIO],
